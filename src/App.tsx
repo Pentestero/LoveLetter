@@ -1,0 +1,201 @@
+import { useState } from 'react';
+import { FloatingHearts } from './components/FloatingHearts';
+import { RomanticPathMap } from './components/RomanticPathMap';
+import { AudioPlayerBar } from './components/AudioPlayerBar';
+import { CustomPhotoGallery } from './components/CustomPhotoGallery';
+import { Step0Welcome } from './components/steps/Step0Welcome';
+import { Step1Mood } from './components/steps/Step1Mood';
+import { Step2Butterflies } from './components/steps/Step2Butterflies';
+import { Step3Cards } from './components/steps/Step3Cards';
+import { Step4Quiz } from './components/steps/Step4Quiz';
+import { Step5Postcard } from './components/steps/Step5Postcard';
+import { Step6SoftMoment } from './components/steps/Step6SoftMoment';
+import { Step7FinalDeclaration } from './components/steps/Step7FinalDeclaration';
+import { DEFAULT_CONFIG, DEFAULT_MUSIC_TRACK, DEFAULT_PHOTOS } from './config';
+import { SoundState } from './types';
+import { soundEngine } from './utils/audio';
+import { Camera } from 'lucide-react';
+
+export default function App() {
+  const [currentStep, setCurrentStep] = useState<number>(0);
+  const [selectedMoodId, setSelectedMoodId] = useState<string | null>(null);
+  const [quizAnswers, setQuizAnswers] = useState<string[]>([]);
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const config = DEFAULT_CONFIG;
+  const photos = DEFAULT_PHOTOS;
+
+  // Sound state
+  const [soundState, setSoundState] = useState<SoundState>(() => {
+    return {
+      isPlaying: false,
+      isMuted: false,
+      volume: 0.6,
+      currentTrack: DEFAULT_MUSIC_TRACK,
+    };
+  });
+
+  const handleUpdateSoundState = (updated: Partial<SoundState>) => {
+    setSoundState((prev) => ({ ...prev, ...updated }));
+  };
+
+  const handleEnvelopeOpen = () => {
+    if (soundState.isPlaying) return;
+    soundEngine.resume(soundState.currentTrack);
+    setSoundState((prev) => ({ ...prev, isPlaying: true, isMuted: false }));
+  };
+
+  // Start adventure from welcome envelope
+  const handleStartAdventure = () => {
+    setCurrentStep(1);
+    if (!soundState.isPlaying) {
+      soundEngine.resume(soundState.currentTrack);
+      setSoundState((prev) => ({ ...prev, isPlaying: true, isMuted: false }));
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleNextStep = () => {
+    setCurrentStep((prev) => Math.min(prev + 1, 7));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleRestart = () => {
+    setCurrentStep(0);
+    setSelectedMoodId(null);
+    setQuizAnswers([]);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  return (
+    <div className="min-h-screen bg-[#FFF8F5] text-[#321B2C] relative flex flex-col justify-between overflow-x-hidden selection:bg-[#F7C8D0] selection:text-[#B42345]">
+      {/* Background Animated Atmosphere */}
+      <FloatingHearts />
+
+      {/* Top Navigation Bar */}
+      <header className="relative z-30 w-full px-3 sm:px-8 py-3.5 flex items-center justify-between border-b border-[#F7C8D0]/40 bg-[#FFF8F5]/85 backdrop-blur-md">
+        <div className="flex items-center gap-2">
+          <span className="font-serif-display text-lg sm:text-xl font-bold tracking-tight text-[#B42345]">
+            {config.recipientName}
+          </span>
+          <span className="text-xs text-[#E85D75] select-none">❤️</span>
+          <span className="text-xs text-[#321B2C]/50 font-medium hidden sm:inline">& {config.senderName}</span>
+        </div>
+
+        {/* Quick actions in top bar */}
+        <div className="flex items-center gap-2">
+          {/* Photos Button */}
+          <button
+            onClick={() => {
+              soundEngine.playHeartPop();
+              setIsPhotoModalOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-[#B42345] bg-[#F7C8D0]/50 hover:bg-[#F7C8D0] shadow-2xs hover:shadow-xs transition-all active:scale-95 cursor-pointer"
+            title="Voir notre album photo 📷"
+          >
+            <Camera className="w-3.5 h-3.5 text-[#E85D75]" />
+            <span>Photos</span>
+            <span className="w-2 h-2 rounded-full bg-[#E85D75] animate-pulse" />
+          </button>
+
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-3 sm:px-6 py-3 pb-24">
+        {/* Animated Motion Design Pathway (visible from step 1 onwards) */}
+        {currentStep > 0 && (
+          <RomanticPathMap
+            currentStep={currentStep}
+            totalSteps={7}
+            onNavigateStep={(step) => setCurrentStep(step)}
+          />
+        )}
+
+        {/* Interactive Step Container with 3D Depth & Transitions */}
+        <div key={currentStep} className="w-full step-transition">
+          {currentStep === 0 && (
+            <Step0Welcome
+              recipientName={config.recipientName}
+              onStartAdventure={handleStartAdventure}
+              onEnvelopeOpen={handleEnvelopeOpen}
+            />
+          )}
+
+          {currentStep === 1 && (
+            <Step1Mood
+              selectedMoodId={selectedMoodId}
+              onSelectMood={(id) => setSelectedMoodId(id)}
+              onNextStep={handleNextStep}
+            />
+          )}
+
+          {currentStep === 2 && (
+            <Step2Butterflies onNextStep={handleNextStep} />
+          )}
+
+          {currentStep === 3 && (
+            <Step3Cards onNextStep={handleNextStep} />
+          )}
+
+          {currentStep === 4 && (
+            <Step4Quiz onNextStep={handleNextStep} onAnswersChange={setQuizAnswers} />
+          )}
+
+          {currentStep === 5 && (
+            <Step5Postcard
+              recipientName={config.recipientName}
+              senderName={config.senderName}
+              onNextStep={handleNextStep}
+            />
+          )}
+
+          {currentStep === 6 && (
+            <Step6SoftMoment onNextStep={handleNextStep} />
+          )}
+
+          {currentStep === 7 && (
+            <Step7FinalDeclaration
+              recipientName={config.recipientName}
+              senderName={config.senderName}
+              whatsappPhone={config.whatsappPhone}
+              customWhatsAppMessage={config.customWhatsAppMessage}
+              quizAnswers={quizAnswers}
+              onRestart={handleRestart}
+            />
+          )}
+        </div>
+
+        {/* Floating Mini Banner to Explore Photos when in mid-journey */}
+        {currentStep > 0 && currentStep < 7 && (
+          <div className="mt-4 flex items-center justify-center">
+            <button
+              onClick={() => {
+                soundEngine.playHeartPop();
+                setIsPhotoModalOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium text-[#E85D75] hover:text-[#B42345] bg-white/70 hover:bg-white border border-[#F7C8D0]/60 shadow-2xs transition-all active:scale-95 cursor-pointer"
+            >
+              <Camera className="w-3 h-3" />
+              <span>Voir notre album photo de souvenirs ({photos.length}) 📸</span>
+            </button>
+          </div>
+        )}
+      </main>
+
+      {/* Floating Audio Player */}
+      <AudioPlayerBar
+        soundState={soundState}
+        onUpdateSoundState={handleUpdateSoundState}
+      />
+
+      {/* Read-only romantic photo gallery */}
+      <CustomPhotoGallery
+        isOpen={isPhotoModalOpen}
+        onClose={() => setIsPhotoModalOpen(false)}
+        photos={photos}
+        recipientName={config.recipientName}
+        senderName={config.senderName}
+      />
+    </div>
+  );
+}

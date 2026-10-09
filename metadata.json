@@ -1,0 +1,7 @@
+{
+  "name": "Shekinaël — Une Petite Aventure d'Amour ❤️",
+  "description": "Une expérience romantique, élégante et interactive créée spécialement pour Shekinaël.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
