@@ -18,6 +18,15 @@ class SoundEngine {
     // Lazy init on first user interaction
   }
 
+  public attachAudioElement(element: HTMLAudioElement | null) {
+    if (element) {
+      this.audioElement = element;
+      this.audioElement.volume = this.volume;
+      this.audioElement.muted = this.isMuted;
+      this.audioElement.loop = this.isLoop;
+    }
+  }
+
   private initAudioContext(): AudioContext {
     if (!this.ctx) {
       const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
@@ -160,23 +169,22 @@ class SoundEngine {
   // --- Background Music: Custom Audio File ---
   public loadCustomAudio(audioUrl: string, onPlay?: () => void, onError?: (err: unknown) => void) {
     this.stopSynthesizer();
-    if (this.audioElement) {
-      this.audioElement.pause();
-      this.audioElement.src = '';
+    if (!this.audioElement) {
+      this.audioElement = new Audio();
     }
-    this.audioElement = new Audio(audioUrl);
+    const audioUrlAbsolute = new URL(audioUrl, document.baseURI).href;
+    if (this.audioElement.src !== audioUrlAbsolute) {
+      this.audioElement.pause();
+      this.audioElement.src = audioUrl;
+      this.audioElement.load();
+    }
     this.audioElement.preload = 'auto';
     this.audioElement.volume = this.volume;
     this.audioElement.muted = this.isMuted;
     this.audioElement.loop = this.isLoop;
 
-    this.audioElement.addEventListener('play', () => {
-      onPlay?.();
-    });
-
-    this.audioElement.addEventListener('error', (e) => {
-      onError?.(e);
-    });
+    if (onPlay) this.audioElement.addEventListener('playing', onPlay, { once: true });
+    if (onError) this.audioElement.addEventListener('error', onError, { once: true });
 
     return this.audioElement.play();
   }
@@ -321,7 +329,11 @@ class SoundEngine {
 
   public resume(track: { isCustomFile: boolean; audioUrl?: string; id: PresetMelodyId }): Promise<void> {
     if (track.isCustomFile && track.audioUrl) {
-      if (this.audioElement) {
+      const requestedUrl = new URL(track.audioUrl, document.baseURI).href;
+      if (this.audioElement?.src === requestedUrl) {
+        this.audioElement.volume = this.volume;
+        this.audioElement.muted = this.isMuted;
+        this.audioElement.loop = this.isLoop;
         return this.audioElement.play();
       }
       return this.loadCustomAudio(track.audioUrl);

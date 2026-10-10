@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FloatingHearts } from './components/FloatingHearts';
 import { RomanticPathMap } from './components/RomanticPathMap';
 import { AudioPlayerBar } from './components/AudioPlayerBar';
@@ -21,8 +21,13 @@ export default function App() {
   const [selectedMoodId, setSelectedMoodId] = useState<string | null>(null);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [audioError, setAudioError] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const config = DEFAULT_CONFIG;
   const photos = DEFAULT_PHOTOS;
+
+  useEffect(() => {
+    soundEngine.attachAudioElement(audioRef.current);
+  }, []);
 
   // Sound state
   const [soundState, setSoundState] = useState<SoundState>(() => {
@@ -78,6 +83,14 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#FFF8F5] text-[#321B2C] relative flex flex-col justify-between overflow-x-hidden selection:bg-[#F7C8D0] selection:text-[#B42345]">
+      <audio
+        ref={audioRef}
+        src={DEFAULT_MUSIC_TRACK.audioUrl}
+        preload="auto"
+        loop
+        aria-hidden="true"
+        className="sr-only"
+      />
       {/* Background Animated Atmosphere */}
       <FloatingHearts />
 

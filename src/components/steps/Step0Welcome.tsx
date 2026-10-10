@@ -20,7 +20,6 @@ export const Step0Welcome: React.FC<Step0WelcomeProps> = ({
     if (!isOpen) {
       setIsOpen(true);
       onEnvelopeOpen();
-      soundEngine.playChime();
 
       // Launch soft heart confettis
       confetti({
