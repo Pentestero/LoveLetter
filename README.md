@@ -1,6 +1,6 @@
 # Shekinaël — Une petite aventure d’amour ❤️
 
-Une expérience romantique interactive créée avec React, TypeScript et Vite. Les photos sont choisies dans le code avant la mise en production. Une mélodie instrumentale originale est synthétisée dans le navigateur et joue en boucle après l’ouverture de l’enveloppe.
+Une expérience romantique interactive créée avec React, TypeScript et Vite. Les photos sont choisies dans le code avant la mise en production. Une ballade pop romantique originale est synthétisée dans le navigateur et joue en boucle après l’ouverture de l’enveloppe.
 
 ## Lancer le projet
 

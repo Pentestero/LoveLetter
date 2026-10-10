@@ -271,7 +271,7 @@ class SoundEngine {
         ],
       },
       'cinematic-love': {
-        bpm: 88,
+        bpm: 80,
         notes: [
           [130.81, 164.81, 196.0, 261.63],
           [123.47, 146.83, 196.0, 293.66],
@@ -294,14 +294,14 @@ class SoundEngine {
     };
 
     const seq = sequences[this.currentMelody] || sequences['music-box'];
-    const chordDuration = (60 / seq.bpm) * 3; // in seconds
+    const chordDuration = (60 / seq.bpm) * (this.currentMelody === 'cinematic-love' ? 4 : 3);
 
     const now = this.ctx.currentTime;
     let timeOffset = 0;
 
     const romanticMelody = this.currentMelody === 'cinematic-love'
       ? [
-          392, 440, 523.25, 587.33, 523.25, 493.88, 440, 523.25,
+          392, 440, 523.25, 493.88, 440, 392, 440, 523.25,
           587.33, 659.25, 698.46, 659.25, 587.33, 523.25, 587.33, 783.99,
         ]
       : [
@@ -312,7 +312,8 @@ class SoundEngine {
     seq.notes.forEach((chord, chordIdx) => {
       const chordStart = now + timeOffset;
       const isCinematic = this.currentMelody === 'cinematic-love';
-      const intensity = isCinematic ? 0.78 + (chordIdx / seq.notes.length) * 0.48 : 1;
+      const sectionLevel = chordIdx < 4 ? 0.68 : chordIdx < 8 ? 0.82 : chordIdx < 12 ? 1 : 1.15;
+      const intensity = isCinematic ? sectionLevel : 1;
 
       // Warm sustained bass under each piano chord.
       const bass = this.ctx!.createOscillator();
@@ -343,35 +344,58 @@ class SoundEngine {
       lead.stop(chordStart + chordDuration + 0.05);
 
       if (isCinematic) {
-        // Detuned triangle-wave chord pads create a wide, cinematic string bed.
-        chord.slice(0, 3).forEach((freq, voiceIdx) => {
-          const pad = this.ctx!.createOscillator();
-          const padEnvelope = this.ctx!.createGain();
-          pad.type = 'triangle';
-          pad.frequency.setValueAtTime(freq, chordStart);
-          pad.detune.setValueAtTime((voiceIdx - 1) * 5, chordStart);
-          padEnvelope.gain.setValueAtTime(0.0001, chordStart);
-          padEnvelope.gain.exponentialRampToValueAtTime(0.022 * intensity, chordStart + 0.38);
-          padEnvelope.gain.exponentialRampToValueAtTime(0.0001, chordStart + chordDuration);
-          pad.connect(padEnvelope);
-          padEnvelope.connect(this.synthGainNode!);
-          pad.start(chordStart);
-          pad.stop(chordStart + chordDuration + 0.05);
-        });
+        // Four-beat piano pulse adds the steady motion of a romantic pop ballad.
+        const beatDuration = 60 / seq.bpm;
+        for (let beat = 0; beat < 4; beat += 1) {
+          const pulse = this.ctx!.createOscillator();
+          const pulseEnvelope = this.ctx!.createGain();
+          const pulseStart = chordStart + beat * beatDuration;
+          const pulseNote = beat === 0 ? chord[0] / 2 : chord[(beat + 1) % chord.length];
+          pulse.type = beat === 0 ? 'sine' : 'triangle';
+          pulse.frequency.setValueAtTime(pulseNote, pulseStart);
+          pulseEnvelope.gain.setValueAtTime(0.0001, pulseStart);
+          pulseEnvelope.gain.exponentialRampToValueAtTime((beat === 0 ? 0.07 : 0.045) * intensity, pulseStart + 0.025);
+          pulseEnvelope.gain.exponentialRampToValueAtTime(0.0001, pulseStart + beatDuration * 0.88);
+          pulse.connect(pulseEnvelope);
+          pulseEnvelope.connect(this.synthGainNode!);
+          pulse.start(pulseStart);
+          pulse.stop(pulseStart + beatDuration);
+        }
 
-        // An octave shimmer grows through the phrase toward a lifted finale.
-        const shimmer = this.ctx!.createOscillator();
-        const shimmerEnvelope = this.ctx!.createGain();
-        const shimmerStart = chordStart + 0.34;
-        shimmer.type = 'sine';
-        shimmer.frequency.setValueAtTime(romanticMelody[chordIdx] * 2, shimmerStart);
-        shimmerEnvelope.gain.setValueAtTime(0.0001, shimmerStart);
-        shimmerEnvelope.gain.exponentialRampToValueAtTime(0.018 * intensity, shimmerStart + 0.22);
-        shimmerEnvelope.gain.exponentialRampToValueAtTime(0.0001, chordStart + chordDuration - 0.08);
-        shimmer.connect(shimmerEnvelope);
-        shimmerEnvelope.connect(this.synthGainNode!);
-        shimmer.start(shimmerStart);
-        shimmer.stop(chordStart + chordDuration + 0.05);
+        // Strings bloom after the intro and get fuller in the chorus.
+        if (chordIdx >= 4) {
+          chord.slice(0, 3).forEach((freq, voiceIdx) => {
+            const pad = this.ctx!.createOscillator();
+            const padEnvelope = this.ctx!.createGain();
+            pad.type = 'triangle';
+            pad.frequency.setValueAtTime(freq, chordStart);
+            pad.detune.setValueAtTime((voiceIdx - 1) * 5, chordStart);
+            padEnvelope.gain.setValueAtTime(0.0001, chordStart);
+            const padLevel = chordIdx >= 8 ? 0.032 : 0.018;
+            padEnvelope.gain.exponentialRampToValueAtTime(padLevel * intensity, chordStart + 0.48);
+            padEnvelope.gain.exponentialRampToValueAtTime(0.0001, chordStart + chordDuration);
+            pad.connect(padEnvelope);
+            padEnvelope.connect(this.synthGainNode!);
+            pad.start(chordStart);
+            pad.stop(chordStart + chordDuration + 0.05);
+          });
+        }
+
+        // Add an octave shimmer from the chorus onward for a lifted finale.
+        if (chordIdx >= 8) {
+          const shimmer = this.ctx!.createOscillator();
+          const shimmerEnvelope = this.ctx!.createGain();
+          const shimmerStart = chordStart + 0.34;
+          shimmer.type = 'sine';
+          shimmer.frequency.setValueAtTime(romanticMelody[chordIdx] * 2, shimmerStart);
+          shimmerEnvelope.gain.setValueAtTime(0.0001, shimmerStart);
+          shimmerEnvelope.gain.exponentialRampToValueAtTime(0.018 * intensity, shimmerStart + 0.22);
+          shimmerEnvelope.gain.exponentialRampToValueAtTime(0.0001, chordStart + chordDuration - 0.08);
+          shimmer.connect(shimmerEnvelope);
+          shimmerEnvelope.connect(this.synthGainNode!);
+          shimmer.start(shimmerStart);
+          shimmer.stop(chordStart + chordDuration + 0.05);
+        }
       }
 
       chord.forEach((freq, noteIdx) => {
@@ -381,7 +405,7 @@ class SoundEngine {
 
         // Music box timbre: mix of sine with soft bell sparkle
         osc.type = this.currentMelody === 'soft-piano' ? 'sine' : 'triangle';
-        const noteSpacing = isCinematic ? 0.14 : 0.18;
+        const noteSpacing = isCinematic ? 0.2 : 0.18;
         osc.frequency.setValueAtTime(freq, now + timeOffset + noteIdx * noteSpacing);
 
         const startTime = now + timeOffset + noteIdx * noteSpacing;

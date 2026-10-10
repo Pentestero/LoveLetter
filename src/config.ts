@@ -46,8 +46,8 @@ export const DEFAULT_PHOTOS: RomanticPhoto[] = [
 // Mélodie instrumentale originale synthétisée dans le navigateur et jouée en boucle.
 export const DEFAULT_MUSIC_TRACK: MusicTrackConfig = {
   id: 'cinematic-love',
-  name: 'Notre grande histoire',
-  artist: 'Thème orchestral original',
+  name: 'Ballade pour toi',
+  artist: 'Pop romantique originale',
 };
 
 // ÉTAPE 1: TEST D'HUMEUR
