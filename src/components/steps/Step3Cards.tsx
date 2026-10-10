@@ -29,15 +29,15 @@ export const Step3Cards: React.FC<Step3CardsProps> = ({ onNextStep }) => {
           Étape 3 / 7
         </span>
         <h2 className="font-serif-display text-2xl sm:text-3xl font-bold text-[#321B2C]">
-          Ouvre-les une par une… 💌
+          Trois choses que j’aime chez toi… 💌
         </h2>
         <p className="text-xs sm:text-sm text-[#321B2C]/80 max-w-sm mx-auto">
-          Trois petites pensées pour toi. Touche chaque carte pour révéler son message.
+          Touche chaque carte. ❤️
         </p>
       </div>
 
       {/* 3 Romantic Cards */}
-      <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md my-2">
+      <div className="stagger-reveal flex flex-col sm:flex-row gap-3 w-full max-w-md my-2">
         {ROMANTIC_CARDS.map((card) => {
           const isOpen = openedCards.includes(card.id);
           return (
@@ -68,7 +68,7 @@ export const Step3Cards: React.FC<Step3CardsProps> = ({ onNextStep }) => {
                   </div>
                   <div className="text-[10px] text-[#321B2C]/60 flex items-center gap-1 font-medium bg-[#F7C8D0]/40 px-2 py-0.5 rounded-full">
                     <Eye className="w-3 h-3" />
-                    <span>Touche pour lire</span>
+                    <span>Découvrir</span>
                   </div>
                 </div>
               )}
@@ -82,7 +82,7 @@ export const Step3Cards: React.FC<Step3CardsProps> = ({ onNextStep }) => {
         {allOpened ? (
           <span className="text-[#B42345] flex items-center gap-1">
             <Heart className="w-3.5 h-3.5 fill-current" />
-            Toutes les cartes sont révélées ! 💖
+            Trois petits mots pour toi. 💖
           </span>
         ) : (
           <span>{openedCards.length} sur 3 cartes ouvertes</span>
@@ -103,7 +103,7 @@ export const Step3Cards: React.FC<Step3CardsProps> = ({ onNextStep }) => {
               : 'bg-slate-200 text-slate-400 cursor-not-allowed opacity-70'
           }`}
         >
-          <span>Il me reste encore une surprise ? 👀</span>
+          <span>La suite m’attend ? 👀</span>
         </button>
       </div>
     </div>

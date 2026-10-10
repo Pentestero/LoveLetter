@@ -32,15 +32,15 @@ export const Step1Mood: React.FC<Step1MoodProps> = ({
           Étape 1 / 7
         </span>
         <h2 className="font-serif-display text-2xl sm:text-3xl font-bold text-[#321B2C]">
-          Avant toute chose, dis-moi…
+          Dis-moi…
         </h2>
         <p className="text-sm sm:text-base text-[#321B2C]/80 font-medium">
-          Comment va ma personne préférée aujourd'hui ? 😏
+          Comment tu te sens, là, maintenant ? ❤️
         </p>
       </div>
 
       {/* 3 Interactive Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-md my-2">
+      <div className="stagger-reveal grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-md my-2">
         {MOOD_OPTIONS.map((opt) => {
           const isSelected = activeMood === opt.id;
           return (
@@ -70,7 +70,7 @@ export const Step1Mood: React.FC<Step1MoodProps> = ({
           <div className="p-4 rounded-2xl bg-white/80 border border-[#F7C8D0] shadow-sm animate-fadeIn w-full">
             <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[#B42345] mb-1">
               <Heart className="w-3.5 h-3.5 fill-[#B42345]" />
-              <span>Pour toi</span>
+              <span>Je t’écoute</span>
             </div>
             <p className="text-xs sm:text-sm text-[#321B2C] font-medium leading-relaxed">
               {selectedOption.response}
@@ -78,7 +78,7 @@ export const Step1Mood: React.FC<Step1MoodProps> = ({
           </div>
         ) : (
           <p className="text-xs text-[#321B2C]/60 italic">
-            Choisis l'option qui te correspond le plus en ce moment…
+            Choisis ce qui te ressemble aujourd’hui…
           </p>
         )}
       </div>

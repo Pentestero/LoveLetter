@@ -16,16 +16,16 @@ export const FloatingHearts: React.FC = () => {
   const particles = useMemo(() => {
     const colors = ['#F7C8D0', '#E85D75', '#B42345', '#FFD1DC', '#FFAAA6'];
     const items: HeartParticle[] = [];
-    for (let i = 0; i < 22; i++) {
+    for (let i = 0; i < 14; i++) {
       items.push({
         id: i,
         left: Math.random() * 96 + 2,
         top: Math.random() * 100,
         size: Math.floor(Math.random() * 14) + 12,
-        duration: Math.random() * 14 + 16,
+        duration: Math.random() * 14 + 24,
         delay: Math.random() * 12,
-        opacity: Math.random() * 0.35 + 0.15,
-        rotate: Math.floor(Math.random() * 60) - 30,
+        opacity: Math.random() * 0.18 + 0.08,
+        rotate: Math.floor(Math.random() * 36) - 18,
         color: colors[i % colors.length],
       });
     }
@@ -53,6 +53,7 @@ export const FloatingHearts: React.FC = () => {
             animation: `floatUp ${p.duration}s linear infinite`,
             animationDelay: `-${p.delay}s`,
             transform: `rotate(${p.rotate}deg)`,
+            willChange: 'transform, opacity',
           }}
         >
           {p.id % 5 === 0 ? '🌸' : '💗'}
@@ -62,20 +63,20 @@ export const FloatingHearts: React.FC = () => {
       <style>{`
         @keyframes floatUp {
           0% {
-            transform: translate3d(-12px, 110vh, 0) rotate(-12deg) scale(0.85);
+            transform: translate3d(-8px, 110vh, 0) rotate(-8deg) scale(0.9);
             opacity: 0;
           }
           10% {
-            opacity: 0.35;
+            opacity: 0.26;
           }
           50% {
-            transform: translate3d(14px, 45vh, 0) rotate(12deg) scale(1.02);
+            transform: translate3d(12px, 45vh, 0) rotate(8deg) scale(1.02);
           }
           90% {
-            opacity: 0.35;
+            opacity: 0.26;
           }
           100% {
-            transform: translate3d(-8px, -20vh, 0) rotate(32deg) scale(1.15);
+            transform: translate3d(-10px, -20vh, 0) rotate(18deg) scale(1.08);
             opacity: 0;
           }
         }

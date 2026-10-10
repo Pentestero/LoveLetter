@@ -39,23 +39,23 @@ export const Step5Postcard: React.FC<Step5PostcardProps> = ({
           Étape 5 / 7
         </span>
         <h2 className="font-serif-display text-2xl sm:text-3xl font-bold text-[#321B2C]">
-          Quelques mots que je voulais te dire… 🌹
+          Une lettre, juste pour toi… 🌹
         </h2>
       </div>
 
       {/* Postcard Container */}
-      <div className="w-full max-w-md bg-[#FFF8F5] border-2 border-[#E85D75]/40 rounded-3xl p-6 sm:p-7 shadow-xl relative text-left my-2 overflow-hidden">
+      <div className="letter-paper-reveal w-full max-w-md bg-[#FFF8F5] border-2 border-[#E85D75]/40 rounded-3xl p-6 sm:p-7 shadow-xl relative text-left my-2 overflow-hidden">
         {/* Subtle decorative stamp & postal watermark */}
         <div className="absolute top-4 right-4 flex flex-col items-center">
           <div className="w-12 h-14 border border-dashed border-[#B42345] rounded-lg bg-white/80 p-1 flex flex-col items-center justify-center shadow-xs">
             <span className="text-xl">💌</span>
             <span className="text-[8px] font-bold text-[#B42345] uppercase tracking-tighter mt-0.5">
-              Amour 1st
+              POUR TOI
             </span>
           </div>
           {/* Postmark circle */}
           <div className="w-9 h-9 rounded-full border border-[#E85D75]/50 flex items-center justify-center -mt-2 -mr-3 rotate-12">
-            <span className="text-[8px] font-bold text-[#B42345]/70">SPECIAL</span>
+            <span className="text-[8px] font-bold text-[#B42345]/70">DU CŒUR</span>
           </div>
         </div>
 
@@ -94,7 +94,7 @@ export const Step5Postcard: React.FC<Step5PostcardProps> = ({
           }}
           className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-[#E85D75] to-[#B42345] text-white font-semibold text-sm shadow-md hover:shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
         >
-          <span>J'ai un dernier message pour toi… 💗</span>
+          <span>Encore un petit moment… 💗</span>
           <Heart className="w-4 h-4 fill-current" />
         </button>
       </div>

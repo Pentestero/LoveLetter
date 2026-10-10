@@ -2,7 +2,6 @@ export interface SenderConfig {
   recipientName: string;
   senderName: string;
   whatsappPhone: string; // international format without + or spaces, e.g. "33612345678" or customizable
-  customWhatsAppMessage: string;
 }
 
 export type PresetMelodyId = 'music-box' | 'soft-piano' | 'starlight-waltz' | 'custom-file';

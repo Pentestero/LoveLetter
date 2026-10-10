@@ -17,8 +17,6 @@ export const DEFAULT_CONFIG: SenderConfig = {
   // Numéro WhatsApp de l'expéditeur (format international sans '+' ni espaces, ex: '33612345678')
   // À renseigner avant la mise en production, au format international sans « + » ni espaces.
   whatsappPhone: '237681282108',
-  // Message envoyé par WhatsApp après la déclaration finale
-    customWhatsAppMessage: 'Coucou Pierre ❤️ J’ai découvert ta surprise !',
 };
 
 // PHOTOS FIXES DE L'ALBUM — souvenirs personnels préparés avant la mise en production.
@@ -61,21 +59,21 @@ export const MOOD_OPTIONS: MoodOption[] = [
     id: 'happy',
     label: 'Je suis heureuse',
     emoji: '🥰',
-    response: 'Je suis heureux de savoir que tu vas bien. J’espère que cette petite surprise ajoutera un peu de douceur à ta journée. 💖',
+    response: 'Ça me fait plaisir. J’espère t’offrir un joli sourire. 💖',
     accentColor: '#E85D75',
   },
   {
     id: 'cuddle',
     label: 'J\'ai besoin d\'un câlin',
     emoji: '🫂',
-    response: 'Câlin virtuel, sans question ni obligation de sourire. Si quelque chose te pèse, je veux aussi pouvoir l’entendre. 🫂',
+    response: 'Je suis là, sans pression. Tu peux tout me dire. 🫂',
     accentColor: '#B42345',
   },
   {
     id: 'laugh',
     label: 'Je veux qu\'on me fasse rire',
     emoji: '😂',
-    response: 'Défi accepté ! Je ne promets pas une grande blague, mais au moins une tentative sincère pour te faire sourire. 😂',
+    response: 'Défi accepté : je vais tenter de te faire sourire. 😂',
     accentColor: '#321B2C',
   },
 ];
@@ -86,21 +84,21 @@ export const BUTTERFLY_CARDS: ButterflyCard[] = [
     id: 1,
     isWinner: false,
     title: 'Cœur Secret #1',
-    message: 'Un câlin, et le rappel que tu peux me parler même quand tu as des doutes. 🫂',
+    message: 'Un câlin, si tu en as envie. 🫂',
     icon: '🫂',
   },
   {
     id: 2,
     isWinner: false,
     title: 'Cœur Secret #2',
-    message: 'Nos chemins viennent de deux pays voisins, mais surtout de deux histoires singulières. J’aimerais découvrir la tienne avec respect. 🌷',
+    message: 'Deux pays, deux histoires. J’ai envie de découvrir la tienne. 🌷',
     icon: '🌷',
   },
   {
     id: 3,
     isWinner: true,
     title: 'Cœur Magique #3',
-    message: 'Ma promesse n’est pas de tout faire parfaitement : c’est d’écouter, d’être honnête et de laisser mes actes parler avec le temps. 💗',
+    message: 'Je veux t’écouter, être sincère et te le montrer par mes actes. 💗',
     icon: '💖',
   },
 ];
@@ -109,10 +107,10 @@ export const BUTTERFLY_CARDS: ButterflyCard[] = [
 export const ROMANTIC_CARDS: RomanticSurpriseCard[] = [
   {
     id: 1,
-    title: 'Ce que j\'aime chez toi',
-    subtitle: 'Une touche unique',
+    title: 'Ce que j’aime chez toi',
+    subtitle: 'Toi, tout simplement',
     icon: '🌷',
-    message: 'J’aime apprendre à connaître la personne que tu es, sans te demander d’être parfaite ni de cacher tes questions. Tu peux être toi, entièrement. ❤️',
+    message: 'J’aime ta façon d’être. Avec moi, reste simplement toi. ❤️',
     colorScheme: {
       bg: '#FFF0F3',
       border: '#F7C8D0',
@@ -121,10 +119,10 @@ export const ROMANTIC_CARDS: RomanticSurpriseCard[] = [
   },
   {
     id: 2,
-    title: 'Deux horizons, une histoire',
+    title: 'Nos deux horizons',
     subtitle: 'Tchad & Cameroun',
     icon: '🌸',
-    message: 'Tu es tchadienne, je suis camerounais. J’aime que nos chemins se rencontrent, et je veux accueillir nos différences avec curiosité et respect. 💖',
+    message: 'Tchad et Cameroun : deux histoires, et le bonheur de se rencontrer. 💖',
     colorScheme: {
       bg: '#FFF8F5',
       border: '#E85D75',
@@ -133,10 +131,10 @@ export const ROMANTIC_CARDS: RomanticSurpriseCard[] = [
   },
   {
     id: 3,
-    title: 'Quand tu doutes',
-    subtitle: 'Tu peux m’en parler',
+    title: 'À ton rythme',
+    subtitle: 'Je suis là pour écouter',
     icon: '💌',
-    message: 'Je ne te demanderai pas d’effacer tes doutes pour me rassurer. Dis-moi ce qui te préoccupe : je veux écouter, comprendre et avancer sans te presser. 🥹',
+    message: 'Tes doutes ont leur place. Je veux les entendre, sans te presser. 💌',
     colorScheme: {
       bg: '#FDF2F4',
       border: '#B42345',
@@ -149,55 +147,55 @@ export const ROMANTIC_CARDS: RomanticSurpriseCard[] = [
 export const QUIZ_QUESTIONS: QuizQuestionItem[] = [
   {
     id: 1,
-    question: 'Quand quelque chose te fait douter, qu’est-ce qui t’aiderait le plus de ma part ?',
+    question: 'Pour notre prochain rendez-vous à distance, tu choisis… ?',
     options: [
       {
-        text: 'Que je t’écoute sans me défendre tout de suite 🫂',
-        reaction: 'Je veux d’abord comprendre ce que tu ressens, pas balayer tes inquiétudes. 💕',
+        text: 'Un appel tout doux 🌙',
+        reaction: 'Je garde une place dans ma soirée pour entendre ta voix. 🌙',
       },
       {
-        text: 'Qu’on se parle franchement et calmement 🌹',
-        reaction: 'D’accord. Une conversation sincère vaut mieux que des suppositions. 🌷',
+        text: 'Nos blagues nulles 😂',
+        reaction: 'Attention, j’en ai une nouvelle… elle est sûrement très nulle. 😂',
       },
       {
-        text: 'Qu’on prenne le temps, puis qu’on en reparle 💑',
-        reaction: 'Je respecterai ton rythme et je resterai disponible pour en reparler. 🤍',
+        text: 'Un câlin à travers l’écran 🫂',
+        reaction: 'Câlin virtuel envoyé, avec option sourire. 🫂',
       },
     ],
   },
   {
     id: 2,
-    question: 'Nos parcours tchadien et camerounais se rencontrent. Qu’aimerais-tu construire avec moi ?',
+    question: 'Quel petit mot ferait briller ta journée ?',
     options: [
       {
-        text: 'Apprendre à connaître nos repères et nos histoires 🌍',
-        reaction: 'Oui, avec curiosité : je veux découvrir ton univers sans prétendre déjà tout savoir. 🌍',
+        text: 'Je pense à toi 💌',
+        reaction: 'Alors, petit rappel du jour : je pense à toi. 💌',
       },
       {
-        text: 'Respecter ce qui nous rend différents 💗',
-        reaction: 'Nos différences font partie de nous ; elles méritent d’être accueillies et respectées. 💗',
+        text: 'Tu me fais sourire 🥰',
+        reaction: 'Et ton sourire est l’un de mes préférés. 🥰',
       },
       {
-        text: 'Créer peu à peu nos propres habitudes à deux 🤍',
-        reaction: 'J’aime cette idée : bâtir quelque chose qui nous ressemble, un pas après l’autre. 🌟',
+        text: 'Courage pour tes études, je crois en toi 💪',
+        reaction: 'Je t’encouragerai de tout cœur. Tu peux le faire ! 💪',
       },
     ],
   },
   {
     id: 3,
-    question: 'À tes yeux, qu’est-ce qui aide la confiance à grandir ?',
+    question: 'Notre petite tradition à deux, ce serait… ?',
     options: [
       {
-        text: 'Des paroles suivies d’actes 😍',
-        reaction: 'Tu as raison : je veux que mes gestes confirment mes mots, dans la durée. 🤍',
+        text: 'Un message doux chaque matin ☀️',
+        reaction: 'Un bonjour de toi, et ma journée commence bien. ☀️',
       },
       {
-        text: 'De la constance dans les petites choses 👀',
-        reaction: 'Je retiens : la confiance se construit aussi dans les gestes simples et réguliers. 🤍',
+        text: 'Un appel plein de fous rires 🌙',
+        reaction: 'Marché conclu — même si c’est moi qui raconte les blagues nulles ! 😂',
       },
       {
-        text: 'Pouvoir dire quand quelque chose m’inquiète 🥰',
-        reaction: 'Oui. Tu dois pouvoir me parler librement ; je préfère une vérité inconfortable au silence. 💖',
+        text: 'Un petit défi surprise par semaine 🎲',
+        reaction: 'J’adore ! Prépare-toi à des défis très sérieux… comme choisir le dessert. 🎲',
       },
     ],
   },
@@ -207,26 +205,25 @@ export const QUIZ_QUESTIONS: QuizQuestionItem[] = [
 export const POSTCARD_TEXT = {
   greeting: 'Ma chère Shekinaël,',
   paragraphs: [
-    'Je voulais t’écrire sans détour : tu comptes beaucoup pour moi, et j’aime apprendre à connaître la personne que tu es, à ton rythme.',
-    'Je sais que tu peux parfois douter de notre relation. Je ne veux ni minimiser ces doutes ni te demander de les faire taire. Tu as le droit de poser tes questions et de me dire ce qui te manque pour te sentir en confiance.',
-    'Tu es tchadienne, je suis camerounais. Nos origines et nos parcours font partie de nous ; j’aimerais continuer à découvrir les tiens avec respect, sans supposer que je sais déjà ce qu’ils signifient pour toi.',
-    'Je ne peux pas promettre d’être parfait. Je peux te promettre de faire de mon mieux pour être sincère, t’écouter et faire en sorte que mes actes rejoignent mes paroles. La confiance se construit avec le temps, pas sous la pression.',
-    'Tu n’as pas besoin de répondre à cette lettre ni de décider quoi que ce soit aujourd’hui. Je voulais simplement que tu saches que je tiens à toi et que je suis prêt à parler, vraiment.',
+    'Tu comptes beaucoup pour moi. J’aime apprendre à te connaître, un jour à la fois.',
+    'Je sais que des doutes peuvent exister. Je ne veux pas les minimiser : je veux t’écouter, sans te presser.',
+    'Nos histoires — tchadienne et camerounaise — sont différentes, et j’ai envie de les découvrir avec respect. Je ne promets pas la perfection, mais de la sincérité, de l’écoute et des actes.',
+    'Tu n’as rien à décider aujourd’hui. Je voulais juste te dire que je tiens à toi. ❤️',
   ],
   closing: 'Avec toute mon affection,',
   signature: 'Pierre. ❤️',
 };
 
 // ÉTAPE 6: LE MOMENT TOUT DOUX
-export const SOFT_MOMENT_QUOTE = 'Tu n’as pas besoin d’avoir toutes les réponses aujourd’hui. J’aimerais qu’on puisse se parler avec confiance, et avancer à ton rythme.';
+export const SOFT_MOMENT_QUOTE = 'Tu n’as pas besoin d’avoir toutes les réponses. Avançons à ton rythme. ❤️';
 
 // ÉTAPE 7: DÉCLARATION FINALE
 export const FINAL_DECLARATION = {
-  title: 'Shekinaël, cette petite surprise était pour toi…',
+  title: 'Shekinaël, j’ai préparé ça pour toi…',
   paragraphs: [
-    'Tu comptes beaucoup pour moi, et je suis heureux que nos chemins — tchadien et camerounais — se soient croisés.',
-    'Je sais que tu peux parfois douter. Tu as le droit de m’en parler : je veux t’écouter et te rassurer par mes actes, pas seulement par des mots.',
-    'Je tiens à toi, sans te demander d’avoir toutes les réponses aujourd’hui. Merci d’être toi. ❤️',
+    'Je suis heureux que nos chemins se soient croisés.',
+    'Tu comptes pour moi. Je veux t’écouter, te respecter et te le montrer par mes actes.',
+    'Merci d’être toi. Rien à décider aujourd’hui. ❤️',
   ],
 };
 

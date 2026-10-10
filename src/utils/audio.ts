@@ -6,8 +6,6 @@ class SoundEngine {
   private synthGainNode: GainNode | null = null;
   private synthTimer: number | null = null;
   private audioElement: HTMLAudioElement | null = null;
-  private audioElementSourceNode: MediaElementAudioSourceNode | null = null;
-  private customMusicGainNode: GainNode | null = null;
   private sfxGainNode: GainNode | null = null;
   private musicDuckTimer: number | null = null;
 
@@ -37,17 +35,18 @@ class SoundEngine {
       const now = this.ctx.currentTime;
       const duck = this.musicDuckTimer !== null ? 0.48 : 1;
       const synthLevel = this.isMuted ? 0 : this.volume * 0.35 * duck;
-      const customLevel = this.isMuted ? 0 : this.volume * duck;
-
-      [this.synthGainNode, this.customMusicGainNode].forEach((node, index) => {
-        if (!node) return;
-        const param = node.gain;
+      if (this.synthGainNode) {
+        const param = this.synthGainNode.gain;
         param.cancelScheduledValues(now);
-        param.setTargetAtTime(index === 0 ? synthLevel : customLevel, now, 0.035);
-      });
+        param.setTargetAtTime(synthLevel, now, 0.035);
+      }
       if (this.sfxGainNode) {
         this.sfxGainNode.gain.setTargetAtTime(this.isMuted ? 0 : this.volume * 0.2, now, 0.025);
       }
+    }
+    if (this.audioElement) {
+      this.audioElement.volume = this.volume;
+      this.audioElement.muted = this.isMuted;
     }
   }
 
@@ -133,13 +132,13 @@ class SoundEngine {
     const ctx = this.initAudioContext();
     const now = ctx.currentTime;
     const duckedSynthLevel = this.isMuted ? 0 : this.volume * 0.35 * 0.48;
-    const duckedCustomLevel = this.isMuted ? 0 : this.volume * 0.48;
-
-    [this.synthGainNode, this.customMusicGainNode].forEach((node, index) => {
-      if (!node) return;
-      node.gain.cancelScheduledValues(now);
-      node.gain.setTargetAtTime(index === 0 ? duckedSynthLevel : duckedCustomLevel, now, 0.025);
-    });
+    if (this.synthGainNode) {
+      this.synthGainNode.gain.cancelScheduledValues(now);
+      this.synthGainNode.gain.setTargetAtTime(duckedSynthLevel, now, 0.025);
+    }
+    if (this.audioElement) {
+      this.audioElement.volume = this.volume * 0.48;
+    }
 
     if (this.musicDuckTimer !== null) {
       window.clearTimeout(this.musicDuckTimer);
@@ -147,12 +146,13 @@ class SoundEngine {
     this.musicDuckTimer = window.setTimeout(() => {
       const releaseTime = ctx.currentTime;
       const synthLevel = this.isMuted ? 0 : this.volume * 0.35;
-      const customLevel = this.isMuted ? 0 : this.volume;
-      [this.synthGainNode, this.customMusicGainNode].forEach((node, index) => {
-        if (!node) return;
-        node.gain.cancelScheduledValues(releaseTime);
-        node.gain.setTargetAtTime(index === 0 ? synthLevel : customLevel, releaseTime, 0.12);
-      });
+      if (this.synthGainNode) {
+        this.synthGainNode.gain.cancelScheduledValues(releaseTime);
+        this.synthGainNode.gain.setTargetAtTime(synthLevel, releaseTime, 0.12);
+      }
+      if (this.audioElement) {
+        this.audioElement.volume = this.volume;
+      }
       this.musicDuckTimer = null;
     }, duration);
   }
@@ -164,16 +164,10 @@ class SoundEngine {
       this.audioElement.pause();
       this.audioElement.src = '';
     }
-    this.audioElementSourceNode?.disconnect();
-    this.customMusicGainNode?.disconnect();
-
     this.audioElement = new Audio(audioUrl);
-    this.audioElementSourceNode = this.initAudioContext().createMediaElementSource(this.audioElement);
-    this.customMusicGainNode = this.initAudioContext().createGain();
-    this.customMusicGainNode.gain.value = this.isMuted ? 0 : this.volume;
-    this.audioElementSourceNode.connect(this.customMusicGainNode);
-    this.customMusicGainNode.connect(this.initAudioContext().destination);
-    this.audioElement.volume = 1;
+    this.audioElement.preload = 'auto';
+    this.audioElement.volume = this.volume;
+    this.audioElement.muted = this.isMuted;
     this.audioElement.loop = this.isLoop;
 
     this.audioElement.addEventListener('play', () => {

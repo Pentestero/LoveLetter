@@ -38,7 +38,7 @@ export const RomanticPathMap: React.FC<RomanticPathMapProps> = ({
         <div className="flex items-center justify-between text-xs mb-2">
           <div className="flex items-center gap-1.5 font-semibold text-[#B42345]">
             <MapPin className="w-3.5 h-3.5" />
-            <span className="font-serif-display tracking-wide">Le Chemin de Notre Aventure</span>
+            <span className="font-serif-display tracking-wide">Notre petite aventure</span>
           </div>
           <span className="text-[11px] font-medium text-[#E85D75] bg-[#F7C8D0]/40 px-2 py-0.5 rounded-full">
             Étape {currentStep} sur 7
@@ -73,7 +73,7 @@ export const RomanticPathMap: React.FC<RomanticPathMapProps> = ({
                     onNavigateStep(wp.step);
                   }
                 }}
-                className={`relative z-10 flex flex-col items-center group transition-all duration-300 min-w-[42px] sm:min-w-[48px] ${
+                className={`motion-button relative z-10 flex flex-col items-center group transition-all duration-300 min-w-[42px] sm:min-w-[48px] ${
                   isUnlocked ? 'cursor-pointer' : 'cursor-not-allowed opacity-40'
                 }`}
                 title={`${wp.label} : ${wp.desc}`}
@@ -120,7 +120,7 @@ export const RomanticPathMap: React.FC<RomanticPathMapProps> = ({
         {/* Journey reminder */}
         <div className="flex items-center justify-center gap-1.5 text-[10px] text-[#321B2C]/65 pt-1 mt-1 border-t border-[#F7C8D0]/40">
           <Heart className="w-2.5 h-2.5 text-[#E85D75] fill-[#E85D75]" />
-          <span>Chaque étape franchie nous rapproche de la déclaration finale</span>
+          <span>Un pas à ton rythme, toujours. ❤️</span>
         </div>
       </div>
     </div>

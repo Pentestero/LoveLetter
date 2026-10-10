@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
 import { Heart, Image as ImageIcon, MessageCircle, RotateCcw } from 'lucide-react';
 import { FINAL_DECLARATION, FINAL_DECLARATION_PHOTO } from '../../config';
@@ -8,8 +8,6 @@ interface Step7FinalDeclarationProps {
   recipientName: string;
   senderName: string;
   whatsappPhone: string;
-  customWhatsAppMessage: string;
-  quizAnswers: string[];
   onRestart: () => void;
 }
 
@@ -17,10 +15,9 @@ export const Step7FinalDeclaration: React.FC<Step7FinalDeclarationProps> = ({
   recipientName,
   senderName,
   whatsappPhone,
-  customWhatsAppMessage,
-  quizAnswers,
   onRestart,
 }) => {
+  const [messageChoice, setMessageChoice] = useState<'yes' | 'no' | null>(null);
 
   useEffect(() => {
     soundEngine.playChime();
@@ -52,22 +49,11 @@ export const Step7FinalDeclaration: React.FC<Step7FinalDeclarationProps> = ({
 
   const handleSendWhatsApp = () => {
     soundEngine.playHeartPop();
-    const defaultMessage = `Coucou ${senderName} ❤️ J'ai découvert ta surprise et elle m'a fait sourire ! Je t'envoie plein de cœurs. 💗`;
-    const answersMessage = quizAnswers.length
-      ? `\n\nMes réponses au petit quiz :\n${quizAnswers.map((answer, index) => `${index + 1}. ${answer}`).join('\n\n')}`
-      : '';
-    const encoded = encodeURIComponent(`${customWhatsAppMessage || defaultMessage}${answersMessage}`);
-
     const cleanPhone = whatsappPhone.replace(/[^0-9]/g, '');
-
-    let url = '';
-    if (cleanPhone && cleanPhone.length >= 6) {
-      url = `https://wa.me/${cleanPhone}?text=${encoded}`;
-    } else {
-      // Direct WhatsApp share without pre-assigned phone: Shekinaël selects Pierre's chat
-      url = `https://api.whatsapp.com/send?text=${encoded}`;
-    }
-
+    const url = cleanPhone.length >= 6
+      ? `https://wa.me/${cleanPhone}`
+      : 'https://api.whatsapp.com/send';
+    setMessageChoice('yes');
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
@@ -96,7 +82,7 @@ export const Step7FinalDeclaration: React.FC<Step7FinalDeclarationProps> = ({
       </div>
 
       {/* Reserved spot for the personal photo to be supplied before production. */}
-      <div className="w-full max-w-md aspect-[4/3] rounded-3xl overflow-hidden border border-[#F7C8D0] shadow-lg bg-gradient-to-br from-[#FFF0F3] via-white to-[#F7C8D0]/50 relative my-3">
+      <div className="final-photo-reveal w-full max-w-md aspect-[4/3] rounded-3xl overflow-hidden border border-[#F7C8D0] shadow-lg bg-gradient-to-br from-[#FFF0F3] via-white to-[#F7C8D0]/50 relative my-3">
         {FINAL_DECLARATION_PHOTO ? (
           <img
             src={FINAL_DECLARATION_PHOTO}
@@ -114,8 +100,25 @@ export const Step7FinalDeclaration: React.FC<Step7FinalDeclarationProps> = ({
         )}
       </div>
 
+      {/* A personal note inspired by their shared story */}
+      <aside className="memory-note-reveal w-full max-w-md my-3 rounded-3xl border border-[#E85D75]/30 bg-gradient-to-br from-[#FFF0F3] via-white to-[#FFF8F5] p-5 sm:p-6 text-left shadow-lg">
+        <div className="mb-3 flex items-center gap-2 text-[#B42345]">
+          <Heart className="h-4 w-4 fill-current" />
+          <h2 className="font-serif-display text-base font-bold sm:text-lg">Ce que j’ai compris de toi</h2>
+        </div>
+        <p className="text-xs leading-relaxed text-[#321B2C]/90 sm:text-sm">
+          J’ai compris que l’amour compte énormément pour toi, même si la peur d’être déçue est encore là. Je ne te demanderai pas d’effacer ton passé : je veux, avec le temps et mes actes, t’aider à retrouver confiance, faire renaître ton joli sourire et bâtir un amour qui ait du sens. Pour tes 24 ans, j’espère que nous aurons franchi un beau cap. Même si c’est parfois difficile, avançons ensemble, à ton rythme. Promis, je ferai ma part. ❤️
+        </p>
+        <p className="mt-3 text-xs leading-relaxed text-[#321B2C]/90 sm:text-sm">
+          Et pour tes études, tu n’es pas seule : je serai là pour t’encourager, autant que possible. En nous parlant avec sincérité, on évitera bien des malentendus. Ensemble, on avancera. Je crois en toi. ❤️
+        </p>
+        <p className="mt-4 text-right font-script text-xl font-semibold text-[#B42345] sm:text-2xl">
+          Ton homme, {senderName}
+        </p>
+      </aside>
+
       {/* Card with complete romantic letter */}
-      <div className="w-full max-w-md bg-white/90 border border-[#F7C8D0] rounded-3xl p-6 sm:p-7 shadow-xl space-y-3.5 text-left text-xs sm:text-sm text-[#321B2C]/90 leading-relaxed my-2">
+      <div className="final-letter-reveal w-full max-w-md bg-white/90 border border-[#F7C8D0] rounded-3xl p-6 sm:p-7 shadow-xl space-y-3.5 text-left text-xs sm:text-sm text-[#321B2C]/90 leading-relaxed my-2">
         {FINAL_DECLARATION.paragraphs.map((p, idx) => (
           <p key={idx}>{p}</p>
         ))}
@@ -131,17 +134,41 @@ export const Step7FinalDeclaration: React.FC<Step7FinalDeclarationProps> = ({
 
       {/* Action Buttons */}
       <div className="w-full max-w-md mt-6 space-y-3">
-        {/* Button: Send WhatsApp */}
-        <button
-          onClick={handleSendWhatsApp}
-          className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-[#25D366] to-[#128C7E] text-white font-bold text-sm sm:text-base shadow-lg hover:shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 cursor-pointer"
-        >
-          <MessageCircle className="w-5 h-5 fill-white" />
-          <span>Envoyer mes réponses à {senderName} par WhatsApp ❤️</span>
-        </button>
-        <p className="text-[11px] text-[#321B2C]/60 text-center">
-          WhatsApp s’ouvrira avec tes réponses déjà écrites. Relis-les puis appuie sur « Envoyer » si tu le souhaites.
-        </p>
+        <section className="rounded-3xl border border-[#F7C8D0] bg-white/85 p-5 text-center shadow-sm" aria-labelledby="message-choice-title">
+          <h2 id="message-choice-title" className="font-serif-display text-lg font-bold text-[#321B2C]">
+            Tu veux laisser un mot à {senderName} ?
+          </h2>
+          <p className="mt-1 text-xs text-[#321B2C]/65">
+            C’est toi qui choisis quoi lui écrire, si tu en as envie. ❤️
+          </p>
+          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={handleSendWhatsApp}
+              className="motion-button flex min-h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#25D366] to-[#128C7E] px-4 py-2 text-sm font-semibold text-white shadow-sm"
+            >
+              <MessageCircle className="h-4 w-4" />
+              Oui, lui écrire
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                soundEngine.playCardFlip();
+                setMessageChoice('no');
+              }}
+              className="motion-button min-h-11 rounded-xl border border-[#F7C8D0] bg-[#FFF8F5] px-4 py-2 text-sm font-semibold text-[#B42345]"
+            >
+              Non, pas maintenant
+            </button>
+          </div>
+          {messageChoice && (
+            <p role="status" className="mt-3 animate-fadeIn text-xs font-medium text-[#B42345]">
+              {messageChoice === 'yes'
+                ? 'WhatsApp s’ouvre sans message préécrit : écris seulement ce que tu souhaites.'
+                : 'Bien sûr. Tu peux garder ce joli moment pour toi. 💗'}
+            </p>
+          )}
+        </section>
 
         {/* Button: Restart */}
         <button

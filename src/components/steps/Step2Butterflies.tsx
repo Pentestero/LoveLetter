@@ -39,15 +39,15 @@ export const Step2Butterflies: React.FC<Step2ButterfliesProps> = ({ onNextStep }
           Étape 2 / 7
         </span>
         <h2 className="font-serif-display text-2xl sm:text-3xl font-bold text-[#321B2C]">
-          Petite mission pour toi ! 🦋
+          Trois cœurs, un petit mot… 🦋
         </h2>
         <p className="text-xs sm:text-sm text-[#321B2C]/80 max-w-sm mx-auto leading-relaxed">
-          Parmi ces trois cœurs, l'un cache un petit mot d'amour spécial. À toi de le trouver ! (Tu peux tous les ouvrir 😉)
+          Ouvre-les tous : chacun cache une pensée pour toi.
         </p>
       </div>
 
       {/* 3 Flip Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 w-full max-w-md my-3">
+      <div className="stagger-reveal grid grid-cols-1 sm:grid-cols-3 gap-3.5 w-full max-w-md my-3">
         {BUTTERFLY_CARDS.map((card) => {
           const isFlipped = flippedCards.includes(card.id);
           return (
@@ -70,7 +70,7 @@ export const Step2Butterflies: React.FC<Step2ButterfliesProps> = ({ onNextStep }
                     Cœur #{card.id}
                   </span>
                   <span className="text-[10px] text-[#321B2C]/60 mt-1">
-                    Touche pour révéler
+                    Touche pour ouvrir
                   </span>
                 </div>
 
@@ -104,7 +104,7 @@ export const Step2Butterflies: React.FC<Step2ButterfliesProps> = ({ onNextStep }
         {hasFoundWinner ? (
           <span className="text-[#B42345] flex items-center gap-1">
             <Heart className="w-3.5 h-3.5 fill-[#B42345]" />
-            Bravo ! Tu as trouvé le cœur magique ! 💗
+            Tu as trouvé mon mot préféré ! 💗
           </span>
         ) : flippedCards.length > 0 ? (
           <span>Essaie encore les autres cœurs ! 😉</span>
@@ -127,7 +127,7 @@ export const Step2Butterflies: React.FC<Step2ButterfliesProps> = ({ onNextStep }
               : 'bg-slate-200 text-slate-400 cursor-not-allowed opacity-70'
           }`}
         >
-          <span>J'ai fini ma mission ! 🎉</span>
+          <span>Continuer 💌</span>
         </button>
       </div>
     </div>

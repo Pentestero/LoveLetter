@@ -19,7 +19,6 @@ import { Camera } from 'lucide-react';
 export default function App() {
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [selectedMoodId, setSelectedMoodId] = useState<string | null>(null);
-  const [quizAnswers, setQuizAnswers] = useState<string[]>([]);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const config = DEFAULT_CONFIG;
   const photos = DEFAULT_PHOTOS;
@@ -62,7 +61,6 @@ export default function App() {
   const handleRestart = () => {
     setCurrentStep(0);
     setSelectedMoodId(null);
-    setQuizAnswers([]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -138,7 +136,7 @@ export default function App() {
           )}
 
           {currentStep === 4 && (
-            <Step4Quiz onNextStep={handleNextStep} onAnswersChange={setQuizAnswers} />
+            <Step4Quiz onNextStep={handleNextStep} />
           )}
 
           {currentStep === 5 && (
@@ -158,8 +156,6 @@ export default function App() {
               recipientName={config.recipientName}
               senderName={config.senderName}
               whatsappPhone={config.whatsappPhone}
-              customWhatsAppMessage={config.customWhatsAppMessage}
-              quizAnswers={quizAnswers}
               onRestart={handleRestart}
             />
           )}
