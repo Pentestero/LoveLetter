@@ -26,7 +26,32 @@ export default function App() {
   const photos = DEFAULT_PHOTOS;
 
   useEffect(() => {
-    soundEngine.attachAudioElement(audioRef.current);
+    const audio = audioRef.current;
+    soundEngine.attachAudioElement(audio);
+    if (!audio) return;
+
+    const handleAudioError = () => {
+      setSoundState((prev) => ({ ...prev, isPlaying: false }));
+      setAudioError('Chrome n’a pas pu lancer le fichier audio. Utilise le lecteur natif ci-dessous pour réessayer.');
+    };
+    const handleAudioPause = () => {
+      if (!audio.ended) {
+        setSoundState((prev) => ({ ...prev, isPlaying: false }));
+      }
+    };
+    const handleAudioPlaying = () => {
+      setAudioError(null);
+      setSoundState((prev) => ({ ...prev, isPlaying: true, isMuted: false }));
+    };
+
+    audio.addEventListener('error', handleAudioError);
+    audio.addEventListener('pause', handleAudioPause);
+    audio.addEventListener('playing', handleAudioPlaying);
+    return () => {
+      audio.removeEventListener('error', handleAudioError);
+      audio.removeEventListener('pause', handleAudioPause);
+      audio.removeEventListener('playing', handleAudioPlaying);
+    };
   }, []);
 
   // Sound state
@@ -43,15 +68,22 @@ export default function App() {
     setSoundState((prev) => ({ ...prev, ...updated }));
   };
 
+  const handleResumeAudio = (): Promise<void> => {
+    soundEngine.setMuted(false);
+    const audio = audioRef.current;
+    return soundState.currentTrack.isCustomFile && audio
+      ? audio.play()
+      : soundEngine.resume(soundState.currentTrack);
+  };
+
   const handleEnvelopeOpen = () => {
     if (soundState.isPlaying) return;
-    soundEngine.setMuted(false);
     setAudioError(null);
-    soundEngine.resume(soundState.currentTrack).then(() => {
+    handleResumeAudio().then(() => {
       setSoundState((prev) => ({ ...prev, isPlaying: true, isMuted: false }));
     }).catch(() => {
       setSoundState((prev) => ({ ...prev, isPlaying: false, isMuted: false }));
-      setAudioError('La lecture a été bloquée. Vérifie le volume du téléphone, puis touche Lecture pour réessayer.');
+      setAudioError('Chrome a refusé la lecture. Touche directement Lecture ou le contrôle audio natif ci-dessous.');
     });
   };
 
@@ -59,12 +91,11 @@ export default function App() {
   const handleStartAdventure = () => {
     setCurrentStep(1);
     if (!soundState.isPlaying) {
-      soundEngine.setMuted(false);
-      soundEngine.resume(soundState.currentTrack).then(() => {
+      handleResumeAudio().then(() => {
         setSoundState((prev) => ({ ...prev, isPlaying: true, isMuted: false }));
       }).catch(() => {
         setSoundState((prev) => ({ ...prev, isPlaying: false, isMuted: false }));
-        setAudioError('La lecture a été bloquée. Vérifie le volume du téléphone, puis touche Lecture pour réessayer.');
+        setAudioError('Chrome a refusé la lecture. Touche directement Lecture ou le contrôle audio natif ci-dessous.');
       });
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -88,8 +119,11 @@ export default function App() {
         src={DEFAULT_MUSIC_TRACK.audioUrl}
         preload="auto"
         loop
-        aria-hidden="true"
-        className="sr-only"
+        controls={Boolean(audioError)}
+        aria-label="Lecteur de musique natif"
+        className={audioError
+          ? 'fixed bottom-20 left-1/2 z-50 w-[min(92vw,24rem)] -translate-x-1/2 rounded-xl shadow-xl'
+          : 'sr-only'}
       />
       {/* Background Animated Atmosphere */}
       <FloatingHearts />
@@ -206,6 +240,7 @@ export default function App() {
       {/* Floating Audio Player */}
       <AudioPlayerBar
         soundState={soundState}
+        onPlayAudio={handleResumeAudio}
         onUpdateSoundState={handleUpdateSoundState}
         audioError={audioError}
         onAudioError={setAudioError}

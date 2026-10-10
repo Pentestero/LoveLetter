@@ -5,6 +5,7 @@ import { soundEngine } from '../utils/audio';
 
 interface AudioPlayerBarProps {
   soundState: SoundState;
+  onPlayAudio: () => Promise<void>;
   onUpdateSoundState: (updated: Partial<SoundState>) => void;
   audioError: string | null;
   onAudioError: (message: string | null) => void;
@@ -12,6 +13,7 @@ interface AudioPlayerBarProps {
 
 export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
   soundState,
+  onPlayAudio,
   onUpdateSoundState,
   audioError,
   onAudioError,
@@ -25,11 +27,14 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
     } else {
       soundEngine.setMuted(false);
       onAudioError(null);
-      soundEngine.resume(soundState.currentTrack).then(() => {
+      onPlayAudio().then(() => {
         onUpdateSoundState({ isPlaying: true, isMuted: false });
-      }).catch(() => {
+      }).catch((error: unknown) => {
         onUpdateSoundState({ isPlaying: false, isMuted: false });
-        onAudioError('La lecture a été bloquée. Vérifie le volume du téléphone, puis touche Lecture pour réessayer.');
+        const reason = error instanceof DOMException && error.name === 'NotAllowedError'
+          ? 'Chrome a bloqué la lecture automatique. Touche Lecture une fois de plus.'
+          : 'La piste n’a pas pu démarrer. Essaie avec le lecteur natif affiché en bas.';
+        onAudioError(reason);
       });
     }
   };
