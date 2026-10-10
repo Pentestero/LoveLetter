@@ -5,7 +5,6 @@ class SoundEngine {
   private isSynthesizerRunning = false;
   private synthGainNode: GainNode | null = null;
   private synthTimer: number | null = null;
-  private audioElement: HTMLAudioElement | null = null;
   private sfxGainNode: GainNode | null = null;
   private musicDuckTimer: number | null = null;
 
@@ -22,23 +21,12 @@ class SoundEngine {
    * Resume AudioContext if suspended — call from any user-gesture handler.
    * Does NOT touch the <audio> element (no play/pause race).
    */
-  public ensureAudioContextResumed(): void {
+  public ensureAudioContextResumed(): Promise<void> {
     try {
-      this.initAudioContext();
-    } catch {
-      // ignore – we'll try again later
-    }
-  }
-
-  public attachAudioElement(element: HTMLAudioElement | null) {
-    if (element) {
-      this.audioElement = element;
-      this.audioElement.volume = this.volume;
-      this.audioElement.muted = this.isMuted;
-      this.audioElement.loop = this.isLoop;
-      // Required for iOS inline playback
-      this.audioElement.setAttribute('playsinline', '');
-      this.audioElement.setAttribute('webkit-playsinline', '');
+      const ctx = this.initAudioContext();
+      return ctx.state === 'suspended' ? ctx.resume() : Promise.resolve();
+    } catch (error) {
+      return Promise.reject(error);
     }
   }
 
@@ -46,9 +34,6 @@ class SoundEngine {
     if (!this.ctx) {
       const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       this.ctx = new AudioCtx();
-    }
-    if (this.ctx.state === 'suspended') {
-      this.ctx.resume();
     }
     return this.ctx;
   }
@@ -58,7 +43,7 @@ class SoundEngine {
     if (this.ctx) {
       const now = this.ctx.currentTime;
       const duck = this.musicDuckTimer !== null ? 0.48 : 1;
-      const synthLevel = this.isMuted ? 0 : this.volume * 0.35 * duck;
+      const synthLevel = this.isMuted ? 0 : this.volume * 0.75 * duck;
       if (this.synthGainNode) {
         const param = this.synthGainNode.gain;
         param.cancelScheduledValues(now);
@@ -67,10 +52,6 @@ class SoundEngine {
       if (this.sfxGainNode) {
         this.sfxGainNode.gain.setTargetAtTime(this.isMuted ? 0 : this.volume * 0.2, now, 0.025);
       }
-    }
-    if (this.audioElement) {
-      this.audioElement.volume = this.volume;
-      this.audioElement.muted = this.isMuted;
     }
   }
 
@@ -83,6 +64,7 @@ class SoundEngine {
   public playHeartPop() {
     try {
       const ctx = this.initAudioContext();
+      void this.ensureAudioContextResumed().catch(() => {});
       this.duckMusic(150);
       this.playTone(740, ctx.currentTime, 0.12, 0.42, 'sine', 1046);
       this.playTone(1046, ctx.currentTime + 0.025, 0.1, 0.18, 'sine', 1175);
@@ -94,6 +76,7 @@ class SoundEngine {
   public playCardFlip() {
     try {
       const ctx = this.initAudioContext();
+      void this.ensureAudioContextResumed().catch(() => {});
       this.duckMusic(180);
       this.playTone(390, ctx.currentTime, 0.11, 0.36, 'triangle', 245);
       this.playTone(610, ctx.currentTime + 0.018, 0.07, 0.12, 'sine', 420);
@@ -105,6 +88,7 @@ class SoundEngine {
   public playChime() {
     try {
       const ctx = this.initAudioContext();
+      void this.ensureAudioContextResumed().catch(() => {});
       this.duckMusic(720);
       [587.33, 739.99, 880, 1174.66].forEach((freq, idx) => {
         this.playTone(freq, ctx.currentTime + idx * 0.075, 0.48, 0.32 - idx * 0.035, 'sine');
@@ -155,59 +139,41 @@ class SoundEngine {
   private duckMusic(duration: number) {
     const ctx = this.initAudioContext();
     const now = ctx.currentTime;
-    const duckedSynthLevel = this.isMuted ? 0 : this.volume * 0.35 * 0.48;
+    const duckedSynthLevel = this.isMuted ? 0 : this.volume * 0.75 * 0.48;
     if (this.synthGainNode) {
       this.synthGainNode.gain.cancelScheduledValues(now);
       this.synthGainNode.gain.setTargetAtTime(duckedSynthLevel, now, 0.025);
     }
-    if (this.audioElement) {
-      this.audioElement.volume = this.volume * 0.48;
-    }
-
     if (this.musicDuckTimer !== null) {
       window.clearTimeout(this.musicDuckTimer);
     }
     this.musicDuckTimer = window.setTimeout(() => {
       const releaseTime = ctx.currentTime;
-      const synthLevel = this.isMuted ? 0 : this.volume * 0.35;
+      const synthLevel = this.isMuted ? 0 : this.volume * 0.75;
       if (this.synthGainNode) {
         this.synthGainNode.gain.cancelScheduledValues(releaseTime);
         this.synthGainNode.gain.setTargetAtTime(synthLevel, releaseTime, 0.12);
-      }
-      if (this.audioElement) {
-        this.audioElement.volume = this.volume;
       }
       this.musicDuckTimer = null;
     }, duration);
   }
 
-  // --- Background Music: Custom Audio File ---
-  /**
-   * Play custom audio. On mobile, the caller MUST invoke this synchronously
-   * inside a user-gesture handler (click / touchend). Call play() immediately
-   * even when the resource is not loaded yet: the browser will load it while
-   * preserving the user activation. Waiting for canplay first loses activation.
-   */
-  public playCustomAudio(element: HTMLAudioElement): Promise<void> {
-    this.stopSynthesizer();
-    this.ensureAudioContextResumed();
-
-    element.volume = this.volume;
-    element.muted = this.isMuted;
-    element.loop = this.isLoop;
-
-    // Do not await canplay/canplaythrough here: on mobile, those events often
-    // arrive after the trusted tap has finished and Chrome then rejects play().
-    return element.play();
-  }
-
   // --- Background Music: Romantic Web Audio Synthesizer ---
-  public playPresetMelody(preset: PresetMelodyId) {
-    if (this.audioElement) {
-      this.audioElement.pause();
-    }
+  public playPresetMelody(preset: PresetMelodyId): Promise<void> {
     this.currentMelody = preset;
+    let resumePromise: Promise<void>;
+    try {
+      // Calling resume here, synchronously from the envelope tap, satisfies
+      // the mobile browser's user-activation requirement for Web Audio.
+      resumePromise = this.ensureAudioContextResumed();
+    } catch (error) {
+      return Promise.reject(error);
+    }
     this.startSynthesizer();
+    return resumePromise.then(() => undefined).catch((error: unknown) => {
+      this.stopSynthesizer();
+      throw error;
+    });
   }
 
   private startSynthesizer() {
@@ -215,7 +181,7 @@ class SoundEngine {
     const ctx = this.initAudioContext();
 
     this.synthGainNode = ctx.createGain();
-    this.synthGainNode.gain.setValueAtTime(this.isMuted ? 0 : this.volume * 0.35, ctx.currentTime);
+    this.synthGainNode.gain.setValueAtTime(this.isMuted ? 0 : this.volume * 0.75, ctx.currentTime);
     this.synthGainNode.connect(ctx.destination);
 
     this.isSynthesizerRunning = true;
@@ -263,14 +229,35 @@ class SoundEngine {
           [174.61, 261.63, 392.0, 440.0],
           // G7sus4 -> G (G3, D4, F4, B4)
           [196.0, 293.66, 349.23, 493.88],
+          // Second phrase: gentle inversions for a longer, flowing theme
+          [261.63, 329.63, 392.0, 523.25],
+          [196.0, 246.94, 293.66, 392.0],
+          [220.0, 261.63, 329.63, 440.0],
+          [164.81, 220.0, 261.63, 329.63],
+          [174.61, 220.0, 261.63, 392.0],
+          [164.81, 196.0, 261.63, 329.63],
+          [174.61, 261.63, 349.23, 440.0],
+          [196.0, 246.94, 293.66, 349.23],
         ],
       },
       'soft-piano': {
-        bpm: 64,
+        bpm: 66,
         notes: [
           [261.63, 329.63, 392.0, 523.25],
           [220.0, 261.63, 329.63, 440.0],
           [174.61, 220.0, 261.63, 329.63],
+          [196.0, 246.94, 293.66, 392.0],
+          [261.63, 329.63, 392.0, 493.88],
+          [246.94, 293.66, 392.0, 493.88],
+          [220.0, 261.63, 329.63, 440.0],
+          [196.0, 246.94, 329.63, 392.0],
+          [174.61, 220.0, 261.63, 349.23],
+          [164.81, 196.0, 261.63, 329.63],
+          [174.61, 220.0, 261.63, 329.63],
+          [196.0, 246.94, 293.66, 392.0],
+          [220.0, 261.63, 329.63, 392.0],
+          [196.0, 246.94, 329.63, 392.0],
+          [174.61, 220.0, 261.63, 349.23],
           [196.0, 246.94, 293.66, 392.0],
         ],
       },
@@ -283,9 +270,26 @@ class SoundEngine {
           [196.0, 293.66, 392.0],
         ],
       },
-      'custom-file': {
-        bpm: 78,
-        notes: [],
+      'cinematic-love': {
+        bpm: 88,
+        notes: [
+          [130.81, 164.81, 196.0, 261.63],
+          [123.47, 146.83, 196.0, 293.66],
+          [110.0, 130.81, 164.81, 220.0],
+          [87.31, 130.81, 174.61, 220.0],
+          [130.81, 164.81, 196.0, 261.63],
+          [123.47, 146.83, 196.0, 246.94],
+          [110.0, 130.81, 164.81, 220.0],
+          [87.31, 130.81, 174.61, 261.63],
+          [146.83, 174.61, 220.0, 293.66],
+          [130.81, 164.81, 196.0, 261.63],
+          [87.31, 130.81, 174.61, 220.0],
+          [98.0, 146.83, 196.0, 246.94],
+          [87.31, 130.81, 174.61, 261.63],
+          [82.41, 130.81, 164.81, 196.0],
+          [98.0, 146.83, 196.0, 246.94],
+          [130.81, 164.81, 196.0, 261.63],
+        ],
       },
     };
 
@@ -295,7 +299,81 @@ class SoundEngine {
     const now = this.ctx.currentTime;
     let timeOffset = 0;
 
-    seq.notes.forEach((chord) => {
+    const romanticMelody = this.currentMelody === 'cinematic-love'
+      ? [
+          392, 440, 523.25, 587.33, 523.25, 493.88, 440, 523.25,
+          587.33, 659.25, 698.46, 659.25, 587.33, 523.25, 587.33, 783.99,
+        ]
+      : [
+      523.25, 493.88, 440, 392, 440, 523.25, 493.88, 392,
+      440, 392, 349.23, 392, 440, 392, 349.23, 392,
+        ];
+
+    seq.notes.forEach((chord, chordIdx) => {
+      const chordStart = now + timeOffset;
+      const isCinematic = this.currentMelody === 'cinematic-love';
+      const intensity = isCinematic ? 0.78 + (chordIdx / seq.notes.length) * 0.48 : 1;
+
+      // Warm sustained bass under each piano chord.
+      const bass = this.ctx!.createOscillator();
+      const bassEnvelope = this.ctx!.createGain();
+      bass.type = 'sine';
+      bass.frequency.setValueAtTime(chord[0] / 2, chordStart);
+      bassEnvelope.gain.setValueAtTime(0.0001, chordStart);
+      bassEnvelope.gain.exponentialRampToValueAtTime(0.045, chordStart + 0.24);
+      bassEnvelope.gain.exponentialRampToValueAtTime(0.0001, chordStart + chordDuration);
+      bass.connect(bassEnvelope);
+      bassEnvelope.connect(this.synthGainNode!);
+      bass.start(chordStart);
+      bass.stop(chordStart + chordDuration + 0.05);
+
+      // A slow, singing top line gives the accompaniment a romantic theme.
+      const lead = this.ctx!.createOscillator();
+      const leadEnvelope = this.ctx!.createGain();
+      const leadStart = chordStart + 0.28;
+      lead.type = 'sine';
+      lead.frequency.setValueAtTime(romanticMelody[chordIdx % romanticMelody.length], leadStart);
+      leadEnvelope.gain.setValueAtTime(0.0001, leadStart);
+      leadEnvelope.gain.exponentialRampToValueAtTime(isCinematic ? 0.075 * intensity : 0.055, leadStart + 0.18);
+      leadEnvelope.gain.exponentialRampToValueAtTime(0.0001, leadStart + chordDuration - 0.08);
+      if (isCinematic) lead.type = 'triangle';
+      lead.connect(leadEnvelope);
+      leadEnvelope.connect(this.synthGainNode!);
+      lead.start(leadStart);
+      lead.stop(chordStart + chordDuration + 0.05);
+
+      if (isCinematic) {
+        // Detuned triangle-wave chord pads create a wide, cinematic string bed.
+        chord.slice(0, 3).forEach((freq, voiceIdx) => {
+          const pad = this.ctx!.createOscillator();
+          const padEnvelope = this.ctx!.createGain();
+          pad.type = 'triangle';
+          pad.frequency.setValueAtTime(freq, chordStart);
+          pad.detune.setValueAtTime((voiceIdx - 1) * 5, chordStart);
+          padEnvelope.gain.setValueAtTime(0.0001, chordStart);
+          padEnvelope.gain.exponentialRampToValueAtTime(0.022 * intensity, chordStart + 0.38);
+          padEnvelope.gain.exponentialRampToValueAtTime(0.0001, chordStart + chordDuration);
+          pad.connect(padEnvelope);
+          padEnvelope.connect(this.synthGainNode!);
+          pad.start(chordStart);
+          pad.stop(chordStart + chordDuration + 0.05);
+        });
+
+        // An octave shimmer grows through the phrase toward a lifted finale.
+        const shimmer = this.ctx!.createOscillator();
+        const shimmerEnvelope = this.ctx!.createGain();
+        const shimmerStart = chordStart + 0.34;
+        shimmer.type = 'sine';
+        shimmer.frequency.setValueAtTime(romanticMelody[chordIdx] * 2, shimmerStart);
+        shimmerEnvelope.gain.setValueAtTime(0.0001, shimmerStart);
+        shimmerEnvelope.gain.exponentialRampToValueAtTime(0.018 * intensity, shimmerStart + 0.22);
+        shimmerEnvelope.gain.exponentialRampToValueAtTime(0.0001, chordStart + chordDuration - 0.08);
+        shimmer.connect(shimmerEnvelope);
+        shimmerEnvelope.connect(this.synthGainNode!);
+        shimmer.start(shimmerStart);
+        shimmer.stop(chordStart + chordDuration + 0.05);
+      }
+
       chord.forEach((freq, noteIdx) => {
         if (!this.ctx || !this.synthGainNode) return;
         const osc = this.ctx.createOscillator();
@@ -303,13 +381,14 @@ class SoundEngine {
 
         // Music box timbre: mix of sine with soft bell sparkle
         osc.type = this.currentMelody === 'soft-piano' ? 'sine' : 'triangle';
-        osc.frequency.setValueAtTime(freq, now + timeOffset + noteIdx * 0.18);
+        const noteSpacing = isCinematic ? 0.14 : 0.18;
+        osc.frequency.setValueAtTime(freq, now + timeOffset + noteIdx * noteSpacing);
 
-        const startTime = now + timeOffset + noteIdx * 0.18;
-        const decayTime = this.currentMelody === 'soft-piano' ? 2.4 : 1.8;
+        const startTime = now + timeOffset + noteIdx * noteSpacing;
+        const decayTime = this.currentMelody === 'soft-piano' ? 2.1 : isCinematic ? 1.55 : 1.8;
 
         noteGain.gain.setValueAtTime(0.0001, startTime);
-        noteGain.gain.exponentialRampToValueAtTime(0.12, startTime + 0.03);
+        noteGain.gain.exponentialRampToValueAtTime(isCinematic ? 0.105 * intensity : 0.12, startTime + 0.03);
         noteGain.gain.exponentialRampToValueAtTime(0.0001, startTime + decayTime);
 
         osc.connect(noteGain);
@@ -333,22 +412,11 @@ class SoundEngine {
   }
 
   public pause() {
-    if (this.audioElement) {
-      this.audioElement.pause();
-    }
     this.stopSynthesizer();
   }
 
-  public resume(track: { isCustomFile: boolean; audioUrl?: string; id: PresetMelodyId }): Promise<void> {
-    if (track.isCustomFile && track.audioUrl) {
-      if (this.audioElement) {
-        return this.playCustomAudio(this.audioElement);
-      }
-      return Promise.reject(new Error('No audio element'));
-    }
-
-    this.playPresetMelody(track.id);
-    return Promise.resolve();
+  public resume(track: { id: PresetMelodyId }): Promise<void> {
+    return this.playPresetMelody(track.id);
   }
 }
 

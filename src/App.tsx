@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import { FloatingHearts } from './components/FloatingHearts';
 import { RomanticPathMap } from './components/RomanticPathMap';
-import { AudioPlayerBar } from './components/AudioPlayerBar';
 import { CustomPhotoGallery } from './components/CustomPhotoGallery';
 import { Step0Welcome } from './components/steps/Step0Welcome';
 import { Step1Mood } from './components/steps/Step1Mood';
@@ -12,123 +11,49 @@ import { Step5Postcard } from './components/steps/Step5Postcard';
 import { Step6SoftMoment } from './components/steps/Step6SoftMoment';
 import { Step7FinalDeclaration } from './components/steps/Step7FinalDeclaration';
 import { DEFAULT_CONFIG, DEFAULT_MUSIC_TRACK, DEFAULT_PHOTOS } from './config';
-import { SoundState } from './types';
 import { soundEngine } from './utils/audio';
 import { Camera } from 'lucide-react';
-
-// Simple mobile detection for keeping native fallback controls available
-const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 export default function App() {
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [selectedMoodId, setSelectedMoodId] = useState<string | null>(null);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [audioError, setAudioError] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const musicStartedRef = useRef(false);
+  const musicStartPromiseRef = useRef<Promise<void> | null>(null);
   const config = DEFAULT_CONFIG;
   const photos = DEFAULT_PHOTOS;
 
-  useEffect(() => {
-    const audio = audioRef.current;
-    soundEngine.attachAudioElement(audio);
-    if (!audio) return;
+  const startMusic = useCallback((): Promise<void> => {
+    if (musicStartedRef.current) return Promise.resolve();
+    if (musicStartPromiseRef.current) return musicStartPromiseRef.current;
 
-    const handleAudioError = () => {
-      setSoundState((prev) => ({ ...prev, isPlaying: false }));
-      setAudioError('Le fichier audio n\u2019a pas pu d\u00E9marrer. Utilise le lecteur ci-dessous pour r\u00E9essayer.');
-    };
-    const handleAudioPause = () => {
-      if (!audio.ended) {
-        setSoundState((prev) => ({ ...prev, isPlaying: false }));
-      }
-    };
-    const handleAudioPlaying = () => {
-      setAudioError(null);
-      setSoundState((prev) => ({ ...prev, isPlaying: true, isMuted: false }));
-    };
+    setAudioError(null);
+    const startPromise = soundEngine.resume(DEFAULT_MUSIC_TRACK)
+      .then(() => {
+        musicStartedRef.current = true;
+      })
+      .catch((error: unknown) => {
+        setAudioError('La mélodie n’a pas démarré. Touche « Découvrir ma surprise » pour réessayer.');
+        throw error;
+      })
+      .finally(() => {
+        musicStartPromiseRef.current = null;
+      });
 
-    audio.addEventListener('error', handleAudioError);
-    audio.addEventListener('pause', handleAudioPause);
-    audio.addEventListener('playing', handleAudioPlaying);
-    return () => {
-      audio.removeEventListener('error', handleAudioError);
-      audio.removeEventListener('pause', handleAudioPause);
-      audio.removeEventListener('playing', handleAudioPlaying);
-    };
+    musicStartPromiseRef.current = startPromise;
+    return startPromise;
   }, []);
-
-  // Resume AudioContext for sound effects on the first gesture only.
-  // Music playback is started separately and directly by its own button.
-  useEffect(() => {
-    const resumeCtx = () => {
-      soundEngine.ensureAudioContextResumed();
-      document.removeEventListener('touchstart', resumeCtx, true);
-      document.removeEventListener('touchend', resumeCtx, true);
-      document.removeEventListener('click', resumeCtx, true);
-    };
-    document.addEventListener('touchstart', resumeCtx, { capture: true });
-    document.addEventListener('touchend', resumeCtx, { capture: true });
-    document.addEventListener('click', resumeCtx, { capture: true });
-    return () => {
-      document.removeEventListener('touchstart', resumeCtx, true);
-      document.removeEventListener('touchend', resumeCtx, true);
-      document.removeEventListener('click', resumeCtx, true);
-    };
-  }, []);
-
-  // Sound state
-  const [soundState, setSoundState] = useState<SoundState>(() => {
-    return {
-      isPlaying: false,
-      isMuted: false,
-      volume: 0.6,
-      currentTrack: DEFAULT_MUSIC_TRACK,
-    };
-  });
-
-  const handleUpdateSoundState = (updated: Partial<SoundState>) => {
-    setSoundState((prev) => ({ ...prev, ...updated }));
-  };
-
-  /**
-   * Play audio — MUST be called synchronously from a user gesture handler
-   * (click / touchend). This is the #1 requirement for mobile browsers.
-   *
-   * The call chain is: click -> handleTogglePlay -> onPlayAudio -> here.
-   * audio.play() is called in the SAME synchronous call stack as the gesture.
-   */
-  const handlePlayAudio = useCallback((): Promise<void> => {
-    soundEngine.ensureAudioContextResumed();
-    soundEngine.setMuted(false);
-    const audio = audioRef.current;
-
-    if (soundState.currentTrack.isCustomFile && audio) {
-      return soundEngine.playCustomAudio(audio);
-    }
-    return soundEngine.resume(soundState.currentTrack);
-  }, [soundState.currentTrack, soundState.volume]);
 
   const handleEnvelopeOpen = () => {
-    if (soundState.isPlaying) return;
-    setAudioError(null);
-    handlePlayAudio().then(() => {
-      setSoundState((prev) => ({ ...prev, isPlaying: true, isMuted: false }));
-    }).catch(() => {
-      setSoundState((prev) => ({ ...prev, isPlaying: false, isMuted: false }));
-      setAudioError('Touche le bouton \u25B6\uFE0F Lecture en bas \u00E0 droite pour lancer la musique.');
-    });
+    void startMusic().catch(() => {});
   };
 
   // Start adventure from welcome envelope
   const handleStartAdventure = () => {
     setCurrentStep(1);
-    if (!soundState.isPlaying) {
-      handlePlayAudio().then(() => {
-        setSoundState((prev) => ({ ...prev, isPlaying: true, isMuted: false }));
-      }).catch(() => {
-        setSoundState((prev) => ({ ...prev, isPlaying: false, isMuted: false }));
-        setAudioError('Touche le bouton \u25B6\uFE0F Lecture en bas \u00E0 droite pour lancer la musique.');
-      });
+    if (!musicStartedRef.current) {
+      void startMusic().catch(() => {});
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -144,28 +69,8 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Show native controls: always on mobile (as reliable fallback), or on error
-  const showNativeControls = isMobile || Boolean(audioError);
-
   return (
     <div className="min-h-screen bg-[#FFF8F5] text-[#321B2C] relative flex flex-col justify-between overflow-x-hidden selection:bg-[#F7C8D0] selection:text-[#B42345]">
-      {/*
-        Native <audio> element — always rendered, used as the source of truth.
-        Keep native controls visible on mobile as a direct browser-managed
-        fallback; the browser still requires a user gesture to start playback.
-      */}
-      <audio
-        ref={audioRef}
-        src={DEFAULT_MUSIC_TRACK.audioUrl}
-        preload="metadata"
-        loop
-        playsInline
-        controls={showNativeControls}
-        aria-label="Lecteur de musique natif"
-        className={showNativeControls
-          ? 'fixed bottom-20 left-1/2 z-50 w-[min(92vw,24rem)] -translate-x-1/2 rounded-xl shadow-xl'
-          : 'sr-only'}
-      />
       {/* Background Animated Atmosphere */}
       <FloatingHearts />
 
@@ -199,7 +104,12 @@ export default function App() {
       </header>
 
       {/* Main Content Area */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-3 sm:px-6 py-3 pb-24">
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-3 sm:px-6 py-3 pb-8">
+        {audioError && (
+          <p role="alert" className="mb-3 w-full max-w-md rounded-2xl border border-[#F7C8D0] bg-white/90 px-4 py-3 text-center text-xs font-medium text-[#B42345] shadow-sm">
+            {audioError}
+          </p>
+        )}
         {/* Animated Motion Design Pathway (visible from step 1 onwards) */}
         {currentStep > 0 && (
           <RomanticPathMap
@@ -277,15 +187,6 @@ export default function App() {
           </div>
         )}
       </main>
-
-      {/* Floating Audio Player */}
-      <AudioPlayerBar
-        soundState={soundState}
-        onPlayAudio={handlePlayAudio}
-        onUpdateSoundState={handleUpdateSoundState}
-        audioError={audioError}
-        onAudioError={setAudioError}
-      />
 
       {/* Read-only romantic photo gallery */}
       <CustomPhotoGallery

@@ -4,21 +4,12 @@ export interface SenderConfig {
   whatsappPhone: string; // international format without + or spaces, e.g. "33612345678" or customizable
 }
 
-export type PresetMelodyId = 'music-box' | 'soft-piano' | 'starlight-waltz' | 'custom-file';
+export type PresetMelodyId = 'music-box' | 'soft-piano' | 'starlight-waltz' | 'cinematic-love';
 
 export interface MusicTrackConfig {
   id: PresetMelodyId;
   name: string;
   artist: string;
-  isCustomFile: boolean;
-  audioUrl?: string; // Data URL or object URL for uploaded files
-}
-
-export interface SoundState {
-  isPlaying: boolean;
-  isMuted: boolean;
-  volume: number; // 0 to 1
-  currentTrack: MusicTrackConfig;
 }
 
 export interface MoodOption {

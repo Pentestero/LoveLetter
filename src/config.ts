@@ -2,7 +2,6 @@ import { ButterflyCard, MoodOption, MusicTrackConfig, QuizQuestionItem, Romantic
 import portraitShekinaelPhoto from '../IMG-20260115-WA0180.jpg';
 import portraitPierrePhoto from '../IMG_20261003_160725_117.jpg';
 import birthdayShekinaelPhoto from '../20260225_183019.jpg';
-import customSong from '../Slimane_-_Des_milliers_de_je_t_aime__Paroles_Lyrics_(256k).mp3';
 import finalDeclarationPhoto from '../Sheki1.jpg';
 
 /**
@@ -44,13 +43,11 @@ export const DEFAULT_PHOTOS: RomanticPhoto[] = [
   },
 ];
 
-// Piste fixe — changez-la ici avant la mise en production, pas depuis l'interface.
+// Mélodie instrumentale originale synthétisée dans le navigateur et jouée en boucle.
 export const DEFAULT_MUSIC_TRACK: MusicTrackConfig = {
-  id: 'custom-file',
-  name: 'Des milliers de je t’aime',
-  artist: 'Slimane',
-  isCustomFile: true,
-  audioUrl: customSong,
+  id: 'cinematic-love',
+  name: 'Notre grande histoire',
+  artist: 'Thème orchestral original',
 };
 
 // ÉTAPE 1: TEST D'HUMEUR
