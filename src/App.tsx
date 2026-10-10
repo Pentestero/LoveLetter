@@ -54,6 +54,26 @@ export default function App() {
     };
   }, []);
 
+  // Mobile audio unlock: prime audio on first user gesture (tap/click).
+  // This is required by iOS Safari and Android Chrome to allow programmatic
+  // .play() calls later without getting NotAllowedError.
+  useEffect(() => {
+    const unlockAudio = () => {
+      soundEngine.unlock();
+      document.removeEventListener('touchstart', unlockAudio, true);
+      document.removeEventListener('touchend', unlockAudio, true);
+      document.removeEventListener('click', unlockAudio, true);
+    };
+    document.addEventListener('touchstart', unlockAudio, { capture: true, once: false });
+    document.addEventListener('touchend', unlockAudio, { capture: true, once: false });
+    document.addEventListener('click', unlockAudio, { capture: true, once: false });
+    return () => {
+      document.removeEventListener('touchstart', unlockAudio, true);
+      document.removeEventListener('touchend', unlockAudio, true);
+      document.removeEventListener('click', unlockAudio, true);
+    };
+  }, []);
+
   // Sound state
   const [soundState, setSoundState] = useState<SoundState>(() => {
     return {
@@ -69,11 +89,20 @@ export default function App() {
   };
 
   const handleResumeAudio = (): Promise<void> => {
+    // Must unlock inside the user-gesture call stack for mobile
+    soundEngine.unlock();
     soundEngine.setMuted(false);
     const audio = audioRef.current;
-    return soundState.currentTrack.isCustomFile && audio
-      ? audio.play()
-      : soundEngine.resume(soundState.currentTrack);
+    if (soundState.currentTrack.isCustomFile && audio) {
+      // On mobile, directly calling .play() on the element within the
+      // gesture handler is the most reliable approach.
+      audio.volume = soundState.volume;
+      audio.muted = false;
+      audio.loop = true;
+      const p = audio.play();
+      return p || Promise.resolve();
+    }
+    return soundEngine.resume(soundState.currentTrack);
   };
 
   const handleEnvelopeOpen = () => {
@@ -119,6 +148,7 @@ export default function App() {
         src={DEFAULT_MUSIC_TRACK.audioUrl}
         preload="auto"
         loop
+        playsInline
         controls={Boolean(audioError)}
         aria-label="Lecteur de musique natif"
         className={audioError

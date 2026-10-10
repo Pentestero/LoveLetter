@@ -13,9 +13,47 @@ class SoundEngine {
   private volume = 0.6;
   private isMuted = false;
   private isLoop = true;
+  private unlocked = false;
 
   constructor() {
     // Lazy init on first user interaction
+  }
+
+  /**
+   * Unlock audio on mobile: must be called from a direct user-gesture handler
+   * (click/touchend). This "primes" both the AudioContext and the <audio>
+   * element so that subsequent programmatic .play() calls are allowed.
+   */
+  public unlock(): void {
+    if (this.unlocked) return;
+
+    // 1. Resume / create the AudioContext inside the gesture
+    try {
+      this.initAudioContext();
+    } catch {
+      // ignore – we'll try again later
+    }
+
+    // 2. Prime the <audio> element with a silent play+pause so the browser
+    //    marks it as "user-activated". On iOS Safari this is mandatory.
+    if (this.audioElement) {
+      const el = this.audioElement;
+      // Temporarily mute to avoid any audible blip
+      const prevMuted = el.muted;
+      el.muted = true;
+      const p = el.play();
+      if (p) {
+        p.then(() => {
+          el.pause();
+          el.muted = prevMuted;
+          el.currentTime = 0;
+        }).catch(() => {
+          el.muted = prevMuted;
+        });
+      }
+    }
+
+    this.unlocked = true;
   }
 
   public attachAudioElement(element: HTMLAudioElement | null) {
@@ -24,6 +62,9 @@ class SoundEngine {
       this.audioElement.volume = this.volume;
       this.audioElement.muted = this.isMuted;
       this.audioElement.loop = this.isLoop;
+      // Required for iOS inline playback
+      this.audioElement.setAttribute('playsinline', '');
+      this.audioElement.setAttribute('webkit-playsinline', '');
     }
   }
 
@@ -169,8 +210,14 @@ class SoundEngine {
   // --- Background Music: Custom Audio File ---
   public loadCustomAudio(audioUrl: string, onPlay?: () => void, onError?: (err: unknown) => void) {
     this.stopSynthesizer();
+
+    // Ensure AudioContext is alive (needed after mobile suspend)
+    try { this.initAudioContext(); } catch { /* ok */ }
+
     if (!this.audioElement) {
       this.audioElement = new Audio();
+      this.audioElement.setAttribute('playsinline', '');
+      this.audioElement.setAttribute('webkit-playsinline', '');
     }
     const audioUrlAbsolute = new URL(audioUrl, document.baseURI).href;
     if (this.audioElement.src !== audioUrlAbsolute) {
@@ -186,7 +233,12 @@ class SoundEngine {
     if (onPlay) this.audioElement.addEventListener('playing', onPlay, { once: true });
     if (onError) this.audioElement.addEventListener('error', onError, { once: true });
 
-    return this.audioElement.play();
+    const playPromise = this.audioElement.play();
+    // play() returns a Promise on modern browsers – guard for older ones
+    if (playPromise) {
+      return playPromise;
+    }
+    return Promise.resolve();
   }
 
   // --- Background Music: Romantic Web Audio Synthesizer ---

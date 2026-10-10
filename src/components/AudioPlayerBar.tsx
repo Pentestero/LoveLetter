@@ -21,6 +21,9 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const handleTogglePlay = () => {
+    // Unlock audio on mobile — must be called synchronously in a user gesture
+    soundEngine.unlock();
+
     if (soundState.isPlaying) {
       soundEngine.pause();
       onUpdateSoundState({ isPlaying: false });
@@ -32,8 +35,8 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
       }).catch((error: unknown) => {
         onUpdateSoundState({ isPlaying: false, isMuted: false });
         const reason = error instanceof DOMException && error.name === 'NotAllowedError'
-          ? 'Chrome a bloqué la lecture automatique. Touche Lecture une fois de plus.'
-          : 'La piste n’a pas pu démarrer. Essaie avec le lecteur natif affiché en bas.';
+          ? 'Touche le bouton Lecture une fois de plus pour lancer la musique \u{1F3B5}'
+          : 'La piste n\u2019a pas pu d\u00E9marrer. Essaie avec le lecteur natif affich\u00E9 en bas.';
         onAudioError(reason);
       });
     }
@@ -75,7 +78,7 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
         <button
           onClick={() => setIsExpanded(!isExpanded)}
           className="flex items-center gap-2 px-1 text-left cursor-pointer group"
-          title="Cliquez pour afficher les détails"
+          title="Cliquez pour afficher les d\u00E9tails"
         >
           {/* Animated Equalizer bars */}
           <div className="flex items-end gap-0.5 h-4 w-4 shrink-0 py-0.5">
