@@ -20,6 +20,7 @@ export default function App() {
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [selectedMoodId, setSelectedMoodId] = useState<string | null>(null);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const [audioError, setAudioError] = useState<string | null>(null);
   const config = DEFAULT_CONFIG;
   const photos = DEFAULT_PHOTOS;
 
@@ -39,16 +40,27 @@ export default function App() {
 
   const handleEnvelopeOpen = () => {
     if (soundState.isPlaying) return;
-    soundEngine.resume(soundState.currentTrack);
-    setSoundState((prev) => ({ ...prev, isPlaying: true, isMuted: false }));
+    soundEngine.setMuted(false);
+    setAudioError(null);
+    soundEngine.resume(soundState.currentTrack).then(() => {
+      setSoundState((prev) => ({ ...prev, isPlaying: true, isMuted: false }));
+    }).catch(() => {
+      setSoundState((prev) => ({ ...prev, isPlaying: false, isMuted: false }));
+      setAudioError('La lecture a été bloquée. Vérifie le volume du téléphone, puis touche Lecture pour réessayer.');
+    });
   };
 
   // Start adventure from welcome envelope
   const handleStartAdventure = () => {
     setCurrentStep(1);
     if (!soundState.isPlaying) {
-      soundEngine.resume(soundState.currentTrack);
-      setSoundState((prev) => ({ ...prev, isPlaying: true, isMuted: false }));
+      soundEngine.setMuted(false);
+      soundEngine.resume(soundState.currentTrack).then(() => {
+        setSoundState((prev) => ({ ...prev, isPlaying: true, isMuted: false }));
+      }).catch(() => {
+        setSoundState((prev) => ({ ...prev, isPlaying: false, isMuted: false }));
+        setAudioError('La lecture a été bloquée. Vérifie le volume du téléphone, puis touche Lecture pour réessayer.');
+      });
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -182,6 +194,8 @@ export default function App() {
       <AudioPlayerBar
         soundState={soundState}
         onUpdateSoundState={handleUpdateSoundState}
+        audioError={audioError}
+        onAudioError={setAudioError}
       />
 
       {/* Read-only romantic photo gallery */}

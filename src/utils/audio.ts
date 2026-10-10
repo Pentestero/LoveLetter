@@ -319,16 +319,16 @@ class SoundEngine {
     this.stopSynthesizer();
   }
 
-  public resume(track: { isCustomFile: boolean; audioUrl?: string; id: PresetMelodyId }) {
+  public resume(track: { isCustomFile: boolean; audioUrl?: string; id: PresetMelodyId }): Promise<void> {
     if (track.isCustomFile && track.audioUrl) {
       if (this.audioElement) {
-        this.audioElement.play().catch(() => {});
-      } else {
-        this.loadCustomAudio(track.audioUrl).catch(() => {});
+        return this.audioElement.play();
       }
-    } else {
-      this.playPresetMelody(track.id);
+      return this.loadCustomAudio(track.audioUrl);
     }
+
+    this.playPresetMelody(track.id);
+    return Promise.resolve();
   }
 }
 

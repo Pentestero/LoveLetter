@@ -6,11 +6,15 @@ import { soundEngine } from '../utils/audio';
 interface AudioPlayerBarProps {
   soundState: SoundState;
   onUpdateSoundState: (updated: Partial<SoundState>) => void;
+  audioError: string | null;
+  onAudioError: (message: string | null) => void;
 }
 
 export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
   soundState,
   onUpdateSoundState,
+  audioError,
+  onAudioError,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -19,8 +23,14 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
       soundEngine.pause();
       onUpdateSoundState({ isPlaying: false });
     } else {
-      soundEngine.resume(soundState.currentTrack);
-      onUpdateSoundState({ isPlaying: true, isMuted: false });
+      soundEngine.setMuted(false);
+      onAudioError(null);
+      soundEngine.resume(soundState.currentTrack).then(() => {
+        onUpdateSoundState({ isPlaying: true, isMuted: false });
+      }).catch(() => {
+        onUpdateSoundState({ isPlaying: false, isMuted: false });
+        onAudioError('La lecture a été bloquée. Vérifie le volume du téléphone, puis touche Lecture pour réessayer.');
+      });
     }
   };
 
@@ -36,6 +46,11 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
       aria-label="Lecteur audio d'ambiance"
       className="fixed bottom-3 right-3 z-40 transition-all duration-300"
     >
+      {audioError && (
+        <p role="alert" className="mb-2 max-w-[92vw] rounded-2xl border border-[#F7C8D0] bg-[#FFF8F5] px-3 py-2 text-xs text-[#B42345] shadow-lg">
+          {audioError}
+        </p>
+      )}
       <div className="bg-[#FFF8F5]/90 backdrop-blur-md border border-[#F7C8D0]/80 rounded-full shadow-lg p-1.5 flex items-center gap-2 max-w-[92vw]">
         {/* Play/Pause Button */}
         <button
