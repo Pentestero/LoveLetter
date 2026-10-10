@@ -21,8 +21,10 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const handleTogglePlay = () => {
-    // Unlock audio on mobile — must be called synchronously in a user gesture
-    soundEngine.unlock();
+    // Resume AudioContext synchronously inside the user gesture.
+    // This is critical for mobile: AudioContext starts "suspended" and can
+    // only be resumed during a user-initiated event.
+    soundEngine.ensureAudioContextResumed();
 
     if (soundState.isPlaying) {
       soundEngine.pause();
@@ -30,13 +32,15 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
     } else {
       soundEngine.setMuted(false);
       onAudioError(null);
+      // onPlayAudio() calls audio.play() — still in the same synchronous
+      // call stack as this click handler, which satisfies mobile browsers.
       onPlayAudio().then(() => {
         onUpdateSoundState({ isPlaying: true, isMuted: false });
       }).catch((error: unknown) => {
         onUpdateSoundState({ isPlaying: false, isMuted: false });
         const reason = error instanceof DOMException && error.name === 'NotAllowedError'
-          ? 'Touche le bouton Lecture une fois de plus pour lancer la musique \u{1F3B5}'
-          : 'La piste n\u2019a pas pu d\u00E9marrer. Essaie avec le lecteur natif affich\u00E9 en bas.';
+          ? 'Touche le bouton Lecture une fois de plus pour lancer la musique \uD83C\uDFB5'
+          : 'La piste n\u2019a pas pu d\u00E9marrer. Utilise le lecteur natif affich\u00E9 en bas.';
         onAudioError(reason);
       });
     }

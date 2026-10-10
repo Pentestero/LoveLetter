@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { FloatingHearts } from './components/FloatingHearts';
 import { RomanticPathMap } from './components/RomanticPathMap';
 import { AudioPlayerBar } from './components/AudioPlayerBar';
@@ -16,6 +16,9 @@ import { SoundState } from './types';
 import { soundEngine } from './utils/audio';
 import { Camera } from 'lucide-react';
 
+// Simple mobile detection for keeping native fallback controls available
+const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
 export default function App() {
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [selectedMoodId, setSelectedMoodId] = useState<string | null>(null);
@@ -32,7 +35,7 @@ export default function App() {
 
     const handleAudioError = () => {
       setSoundState((prev) => ({ ...prev, isPlaying: false }));
-      setAudioError('Chrome n’a pas pu lancer le fichier audio. Utilise le lecteur natif ci-dessous pour réessayer.');
+      setAudioError('Le fichier audio n\u2019a pas pu d\u00E9marrer. Utilise le lecteur ci-dessous pour r\u00E9essayer.');
     };
     const handleAudioPause = () => {
       if (!audio.ended) {
@@ -54,23 +57,22 @@ export default function App() {
     };
   }, []);
 
-  // Mobile audio unlock: prime audio on first user gesture (tap/click).
-  // This is required by iOS Safari and Android Chrome to allow programmatic
-  // .play() calls later without getting NotAllowedError.
+  // Resume AudioContext for sound effects on the first gesture only.
+  // Music playback is started separately and directly by its own button.
   useEffect(() => {
-    const unlockAudio = () => {
-      soundEngine.unlock();
-      document.removeEventListener('touchstart', unlockAudio, true);
-      document.removeEventListener('touchend', unlockAudio, true);
-      document.removeEventListener('click', unlockAudio, true);
+    const resumeCtx = () => {
+      soundEngine.ensureAudioContextResumed();
+      document.removeEventListener('touchstart', resumeCtx, true);
+      document.removeEventListener('touchend', resumeCtx, true);
+      document.removeEventListener('click', resumeCtx, true);
     };
-    document.addEventListener('touchstart', unlockAudio, { capture: true, once: false });
-    document.addEventListener('touchend', unlockAudio, { capture: true, once: false });
-    document.addEventListener('click', unlockAudio, { capture: true, once: false });
+    document.addEventListener('touchstart', resumeCtx, { capture: true });
+    document.addEventListener('touchend', resumeCtx, { capture: true });
+    document.addEventListener('click', resumeCtx, { capture: true });
     return () => {
-      document.removeEventListener('touchstart', unlockAudio, true);
-      document.removeEventListener('touchend', unlockAudio, true);
-      document.removeEventListener('click', unlockAudio, true);
+      document.removeEventListener('touchstart', resumeCtx, true);
+      document.removeEventListener('touchend', resumeCtx, true);
+      document.removeEventListener('click', resumeCtx, true);
     };
   }, []);
 
@@ -88,31 +90,32 @@ export default function App() {
     setSoundState((prev) => ({ ...prev, ...updated }));
   };
 
-  const handleResumeAudio = (): Promise<void> => {
-    // Must unlock inside the user-gesture call stack for mobile
-    soundEngine.unlock();
+  /**
+   * Play audio — MUST be called synchronously from a user gesture handler
+   * (click / touchend). This is the #1 requirement for mobile browsers.
+   *
+   * The call chain is: click -> handleTogglePlay -> onPlayAudio -> here.
+   * audio.play() is called in the SAME synchronous call stack as the gesture.
+   */
+  const handlePlayAudio = useCallback((): Promise<void> => {
+    soundEngine.ensureAudioContextResumed();
     soundEngine.setMuted(false);
     const audio = audioRef.current;
+
     if (soundState.currentTrack.isCustomFile && audio) {
-      // On mobile, directly calling .play() on the element within the
-      // gesture handler is the most reliable approach.
-      audio.volume = soundState.volume;
-      audio.muted = false;
-      audio.loop = true;
-      const p = audio.play();
-      return p || Promise.resolve();
+      return soundEngine.playCustomAudio(audio);
     }
     return soundEngine.resume(soundState.currentTrack);
-  };
+  }, [soundState.currentTrack, soundState.volume]);
 
   const handleEnvelopeOpen = () => {
     if (soundState.isPlaying) return;
     setAudioError(null);
-    handleResumeAudio().then(() => {
+    handlePlayAudio().then(() => {
       setSoundState((prev) => ({ ...prev, isPlaying: true, isMuted: false }));
     }).catch(() => {
       setSoundState((prev) => ({ ...prev, isPlaying: false, isMuted: false }));
-      setAudioError('Chrome a refusé la lecture. Touche directement Lecture ou le contrôle audio natif ci-dessous.');
+      setAudioError('Touche le bouton \u25B6\uFE0F Lecture en bas \u00E0 droite pour lancer la musique.');
     });
   };
 
@@ -120,11 +123,11 @@ export default function App() {
   const handleStartAdventure = () => {
     setCurrentStep(1);
     if (!soundState.isPlaying) {
-      handleResumeAudio().then(() => {
+      handlePlayAudio().then(() => {
         setSoundState((prev) => ({ ...prev, isPlaying: true, isMuted: false }));
       }).catch(() => {
         setSoundState((prev) => ({ ...prev, isPlaying: false, isMuted: false }));
-        setAudioError('Chrome a refusé la lecture. Touche directement Lecture ou le contrôle audio natif ci-dessous.');
+        setAudioError('Touche le bouton \u25B6\uFE0F Lecture en bas \u00E0 droite pour lancer la musique.');
       });
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -141,17 +144,25 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Show native controls: always on mobile (as reliable fallback), or on error
+  const showNativeControls = isMobile || Boolean(audioError);
+
   return (
     <div className="min-h-screen bg-[#FFF8F5] text-[#321B2C] relative flex flex-col justify-between overflow-x-hidden selection:bg-[#F7C8D0] selection:text-[#B42345]">
+      {/*
+        Native <audio> element — always rendered, used as the source of truth.
+        Keep native controls visible on mobile as a direct browser-managed
+        fallback; the browser still requires a user gesture to start playback.
+      */}
       <audio
         ref={audioRef}
         src={DEFAULT_MUSIC_TRACK.audioUrl}
-        preload="auto"
+        preload="metadata"
         loop
         playsInline
-        controls={Boolean(audioError)}
+        controls={showNativeControls}
         aria-label="Lecteur de musique natif"
-        className={audioError
+        className={showNativeControls
           ? 'fixed bottom-20 left-1/2 z-50 w-[min(92vw,24rem)] -translate-x-1/2 rounded-xl shadow-xl'
           : 'sr-only'}
       />
@@ -164,7 +175,7 @@ export default function App() {
           <span className="font-serif-display text-lg sm:text-xl font-bold tracking-tight text-[#B42345]">
             {config.recipientName}
           </span>
-          <span className="text-xs text-[#E85D75] select-none">❤️</span>
+          <span className="text-xs text-[#E85D75] select-none">{'\u2764\uFE0F'}</span>
           <span className="text-xs text-[#321B2C]/50 font-medium hidden sm:inline">& {config.senderName}</span>
         </div>
 
@@ -177,7 +188,7 @@ export default function App() {
               setIsPhotoModalOpen(true);
             }}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-[#B42345] bg-[#F7C8D0]/50 hover:bg-[#F7C8D0] shadow-2xs hover:shadow-xs transition-all active:scale-95 cursor-pointer"
-            title="Voir notre album photo 📷"
+            title="Voir notre album photo \uD83D\uDCF7"
           >
             <Camera className="w-3.5 h-3.5 text-[#E85D75]" />
             <span>Photos</span>
@@ -261,7 +272,7 @@ export default function App() {
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium text-[#E85D75] hover:text-[#B42345] bg-white/70 hover:bg-white border border-[#F7C8D0]/60 shadow-2xs transition-all active:scale-95 cursor-pointer"
             >
               <Camera className="w-3 h-3" />
-              <span>Voir notre album photo de souvenirs ({photos.length}) 📸</span>
+              <span>Voir notre album photo de souvenirs ({photos.length}) {'\uD83D\uDCF8'}</span>
             </button>
           </div>
         )}
@@ -270,7 +281,7 @@ export default function App() {
       {/* Floating Audio Player */}
       <AudioPlayerBar
         soundState={soundState}
-        onPlayAudio={handleResumeAudio}
+        onPlayAudio={handlePlayAudio}
         onUpdateSoundState={handleUpdateSoundState}
         audioError={audioError}
         onAudioError={setAudioError}

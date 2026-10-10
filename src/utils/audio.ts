@@ -13,47 +13,21 @@ class SoundEngine {
   private volume = 0.6;
   private isMuted = false;
   private isLoop = true;
-  private unlocked = false;
 
   constructor() {
     // Lazy init on first user interaction
   }
 
   /**
-   * Unlock audio on mobile: must be called from a direct user-gesture handler
-   * (click/touchend). This "primes" both the AudioContext and the <audio>
-   * element so that subsequent programmatic .play() calls are allowed.
+   * Resume AudioContext if suspended — call from any user-gesture handler.
+   * Does NOT touch the <audio> element (no play/pause race).
    */
-  public unlock(): void {
-    if (this.unlocked) return;
-
-    // 1. Resume / create the AudioContext inside the gesture
+  public ensureAudioContextResumed(): void {
     try {
       this.initAudioContext();
     } catch {
       // ignore – we'll try again later
     }
-
-    // 2. Prime the <audio> element with a silent play+pause so the browser
-    //    marks it as "user-activated". On iOS Safari this is mandatory.
-    if (this.audioElement) {
-      const el = this.audioElement;
-      // Temporarily mute to avoid any audible blip
-      const prevMuted = el.muted;
-      el.muted = true;
-      const p = el.play();
-      if (p) {
-        p.then(() => {
-          el.pause();
-          el.muted = prevMuted;
-          el.currentTime = 0;
-        }).catch(() => {
-          el.muted = prevMuted;
-        });
-      }
-    }
-
-    this.unlocked = true;
   }
 
   public attachAudioElement(element: HTMLAudioElement | null) {
@@ -208,37 +182,23 @@ class SoundEngine {
   }
 
   // --- Background Music: Custom Audio File ---
-  public loadCustomAudio(audioUrl: string, onPlay?: () => void, onError?: (err: unknown) => void) {
+  /**
+   * Play custom audio. On mobile, the caller MUST invoke this synchronously
+   * inside a user-gesture handler (click / touchend). Call play() immediately
+   * even when the resource is not loaded yet: the browser will load it while
+   * preserving the user activation. Waiting for canplay first loses activation.
+   */
+  public playCustomAudio(element: HTMLAudioElement): Promise<void> {
     this.stopSynthesizer();
+    this.ensureAudioContextResumed();
 
-    // Ensure AudioContext is alive (needed after mobile suspend)
-    try { this.initAudioContext(); } catch { /* ok */ }
+    element.volume = this.volume;
+    element.muted = this.isMuted;
+    element.loop = this.isLoop;
 
-    if (!this.audioElement) {
-      this.audioElement = new Audio();
-      this.audioElement.setAttribute('playsinline', '');
-      this.audioElement.setAttribute('webkit-playsinline', '');
-    }
-    const audioUrlAbsolute = new URL(audioUrl, document.baseURI).href;
-    if (this.audioElement.src !== audioUrlAbsolute) {
-      this.audioElement.pause();
-      this.audioElement.src = audioUrl;
-      this.audioElement.load();
-    }
-    this.audioElement.preload = 'auto';
-    this.audioElement.volume = this.volume;
-    this.audioElement.muted = this.isMuted;
-    this.audioElement.loop = this.isLoop;
-
-    if (onPlay) this.audioElement.addEventListener('playing', onPlay, { once: true });
-    if (onError) this.audioElement.addEventListener('error', onError, { once: true });
-
-    const playPromise = this.audioElement.play();
-    // play() returns a Promise on modern browsers – guard for older ones
-    if (playPromise) {
-      return playPromise;
-    }
-    return Promise.resolve();
+    // Do not await canplay/canplaythrough here: on mobile, those events often
+    // arrive after the trusted tap has finished and Chrome then rejects play().
+    return element.play();
   }
 
   // --- Background Music: Romantic Web Audio Synthesizer ---
@@ -381,14 +341,10 @@ class SoundEngine {
 
   public resume(track: { isCustomFile: boolean; audioUrl?: string; id: PresetMelodyId }): Promise<void> {
     if (track.isCustomFile && track.audioUrl) {
-      const requestedUrl = new URL(track.audioUrl, document.baseURI).href;
-      if (this.audioElement?.src === requestedUrl) {
-        this.audioElement.volume = this.volume;
-        this.audioElement.muted = this.isMuted;
-        this.audioElement.loop = this.isLoop;
-        return this.audioElement.play();
+      if (this.audioElement) {
+        return this.playCustomAudio(this.audioElement);
       }
-      return this.loadCustomAudio(track.audioUrl);
+      return Promise.reject(new Error('No audio element'));
     }
 
     this.playPresetMelody(track.id);
